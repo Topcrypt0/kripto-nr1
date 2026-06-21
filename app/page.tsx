@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatEther, parseEther, parseEventLogs } from "viem";
 import {
   useAccount,
@@ -18,7 +18,10 @@ import {
   kriptoNr1Abi,
 } from "@/lib/contract";
 import { activeChain } from "@/lib/wagmi";
+import { destMeta } from "@/lib/destinations";
+import { playCrash, playLaunch, playWin, unlockAudio } from "@/lib/sound";
 import { Rocket } from "@/components/Rocket";
+import { History, type HistoryItem } from "@/components/History";
 
 type Phase = "idle" | "launching" | "result";
 
@@ -29,6 +32,7 @@ type GameResult = {
 };
 
 const PRESETS = ["0.0001", "0.0002", "0.0005", "0.001"];
+const HISTORY_KEY = "kr1_history";
 
 export default function Home() {
   const { address, isConnected, chainId } = useAccount();
@@ -42,23 +46,110 @@ export default function Home() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [result, setResult] = useState<GameResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [muted, setMuted] = useState(false);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+
+  const mutedRef = useRef(muted);
+  useEffect(() => {
+    mutedRef.current = muted;
+  }, [muted]);
 
   const wrongChain = isConnected && chainId !== activeChain.id;
+  const contractConfigured =
+    CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000";
+
+  // restore prefs + history on mount
+  useEffect(() => {
+    try {
+      setMuted(localStorage.getItem("kr1_muted") === "1");
+      const raw = localStorage.getItem(HISTORY_KEY);
+      if (raw) setHistory(JSON.parse(raw) as HistoryItem[]);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 10)));
+    } catch {
+      /* ignore */
+    }
+  }, [history]);
 
   const { data: bankroll } = useReadContract({
     address: CONTRACT_ADDRESS,
     abi: kriptoNr1Abi,
     functionName: "bankroll",
-    query: { refetchInterval: 15_000 },
+    query: { refetchInterval: 15_000, enabled: contractConfigured },
   });
+
+  const fetchHistory = useCallback(async () => {
+    if (!publicClient || !contractConfigured) return;
+    try {
+      const latest = await publicClient.getBlockNumber();
+      const fromBlock = latest > 1800n ? latest - 1800n : 0n;
+      const logs = await publicClient.getContractEvents({
+        address: CONTRACT_ADDRESS,
+        abi: kriptoNr1Abi,
+        eventName: "Launch",
+        fromBlock,
+        toBlock: "latest",
+      });
+      const onChain: HistoryItem[] = logs
+        .map((l) => ({
+          txHash: l.transactionHash ?? "",
+          block: l.blockNumber ?? 0n,
+          logIndex: l.logIndex ?? 0,
+          player: (l.args as { player: string }).player,
+          multiplier: Number((l.args as { multiplier: bigint }).multiplier),
+          payoutWei: (l.args as { payout: bigint }).payout.toString(),
+        }))
+        .sort((a, b) =>
+          a.block === b.block
+            ? b.logIndex - a.logIndex
+            : Number(b.block - a.block),
+        )
+        .map(({ txHash, player, multiplier, payoutWei }) => ({
+          txHash,
+          player,
+          multiplier,
+          payoutWei,
+        }));
+
+      setHistory((prev) => {
+        const extra = prev.filter(
+          (p) => !onChain.some((o) => o.txHash === p.txHash),
+        );
+        return [...extra, ...onChain].slice(0, 10);
+      });
+    } catch {
+      /* RPC range limits / hiccups — keep local history */
+    }
+  }, [publicClient, contractConfigured]);
+
+  useEffect(() => {
+    fetchHistory();
+    const id = setInterval(fetchHistory, 20_000);
+    return () => clearInterval(id);
+  }, [fetchHistory]);
 
   const betValid = useMemo(() => {
     const n = Number(bet);
     return Number.isFinite(n) && n >= Number(MIN_BET) && n <= Number(MAX_BET);
   }, [bet]);
 
-  const contractConfigured =
-    CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000";
+  function toggleMute() {
+    setMuted((m) => {
+      const next = !m;
+      try {
+        localStorage.setItem("kr1_muted", next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }
 
   async function handleLaunch() {
     setError(null);
@@ -72,6 +163,9 @@ export default function Home() {
       setError("RPC client not ready, try again");
       return;
     }
+
+    unlockAudio();
+    if (!muted) playLaunch();
 
     try {
       setPhase("launching");
@@ -94,20 +188,36 @@ export default function Home() {
         | { multiplier: bigint; bet: bigint; payout: bigint }
         | undefined;
 
-      if (!ev) {
-        throw new Error("Could not read the result from the transaction");
-      }
+      if (!ev) throw new Error("Could not read the result from the transaction");
 
-      setResult({
-        multiplier: Number(ev.multiplier),
-        bet: ev.bet,
-        payout: ev.payout,
-      });
+      const mult = Number(ev.multiplier);
+      setResult({ multiplier: mult, bet: ev.bet, payout: ev.payout });
       setPhase("result");
+
+      // optimistic history entry (RPC may lag a moment)
+      setHistory((prev) => [
+        {
+          txHash: hash,
+          player: address ?? "0x",
+          multiplier: mult,
+          payoutWei: ev.payout.toString(),
+        },
+        ...prev.filter((p) => p.txHash !== hash),
+      ].slice(0, 10));
+
+      // play the result sound when the rocket reaches its destination
+      const durMs = destMeta(mult).durMs;
+      const delay = mult > 0 ? durMs * 0.85 : durMs * 0.65;
+      window.setTimeout(() => {
+        if (mutedRef.current) return;
+        if (mult > 0) playWin();
+        else playCrash();
+      }, delay);
+
+      window.setTimeout(fetchHistory, 4000);
     } catch (e: unknown) {
       const msg =
         e instanceof Error ? e.message : "Transaction failed or rejected";
-      // Trim long wallet error blobs.
       setError(msg.split("\n")[0].slice(0, 160));
       setPhase("idle");
     }
@@ -123,23 +233,31 @@ export default function Home() {
     <main className="wrap">
       <header className="topbar">
         <div className="brand">
-          <span className="logo">🚀</span>
+          {/* Swap public/logo.svg for your own image to use the real logo */}
+          <img src="/logo.svg" alt="KRIPTO NR.1" className="logoImg" />
           <span>
             KRIPTO <span className="accent">NR.1</span>
           </span>
         </div>
-        {isConnected ? (
-          <button className="btn ghost" onClick={() => disconnect()}>
-            {address?.slice(0, 6)}…{address?.slice(-4)}
+        <div className="topRight">
+          <button
+            className="iconBtn"
+            onClick={toggleMute}
+            aria-label={muted ? "Unmute" : "Mute"}
+            title={muted ? "Unmute" : "Mute"}
+          >
+            {muted ? "🔇" : "🔊"}
           </button>
-        ) : null}
+          {isConnected && (
+            <button className="btn ghost" onClick={() => disconnect()}>
+              {address?.slice(0, 6)}…{address?.slice(-4)}
+            </button>
+          )}
+        </div>
       </header>
 
       <section className="stage">
-        <Rocket
-          phase={phase}
-          multiplier={result?.multiplier ?? null}
-        />
+        <Rocket phase={phase} multiplier={result?.multiplier ?? null} />
       </section>
 
       <section className="panel">
@@ -235,12 +353,16 @@ export default function Home() {
           </>
         )}
 
+        <History items={history} you={address} />
+
         {error && <p className="error">{error}</p>}
       </section>
 
       <footer className="foot">
         <span>Open source · MIT</span>
-        <span>Min {MIN_BET} – Max {MAX_BET} ETH</span>
+        <span>
+          Min {MIN_BET} – Max {MAX_BET} ETH
+        </span>
       </footer>
     </main>
   );

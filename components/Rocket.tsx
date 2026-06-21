@@ -1,26 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { DEST_META } from "@/lib/destinations";
 
 type Phase = "idle" | "launching" | "result";
 
-type Dest = {
-  name: string;
+type Geo = {
   className: string;
   top: string; // distance from top of scene
   targetY: number; // px the rocket travels up (negative)
-  dur: number; // flight seconds
 };
 
-// The bigger the multiplier, the farther / bigger the planet.
-const DESTINATIONS: Record<number, Dest> = {
-  2: { name: "Mars", className: "mars", top: "46%", targetY: -150, dur: 2.0 },
-  3: { name: "Jupiter", className: "jupiter", top: "33%", targetY: -210, dur: 2.5 },
-  5: { name: "Saturn", className: "saturn", top: "19%", targetY: -270, dur: 3.0 },
-  10: { name: "Neptune", className: "neptune", top: "6%", targetY: -330, dur: 3.6 },
+// Visual placement per multiplier. Names/durations come from DEST_META so the
+// scene, the sounds and the history stay perfectly in sync.
+const GEO: Record<number, Geo> = {
+  2: { className: "mars", top: "46%", targetY: -150 },
+  3: { className: "jupiter", top: "33%", targetY: -210 },
+  5: { className: "saturn", top: "19%", targetY: -270 },
+  10: { className: "neptune", top: "6%", targetY: -330 },
 };
 
-const CRASH = { top: "40%", targetY: -185, dur: 1.7 };
+const CRASH = { top: "40%", targetY: -185 };
 
 export function Rocket({
   phase,
@@ -37,13 +37,12 @@ export function Rocket({
 
   const won = phase === "result" && (multiplier ?? 0) > 0;
   const crashed = phase === "result" && multiplier === 0;
-  const dest = won ? DESTINATIONS[multiplier as number] : null;
-
-  const flight = won ? dest! : CRASH;
+  const geo = won ? GEO[multiplier as number] : CRASH;
+  const durMs = (won ? DEST_META[multiplier as number] : DEST_META[0]).durMs;
 
   const sceneStyle = {
-    ["--target-y" as string]: `${flight.targetY}px`,
-    ["--dur" as string]: `${flight.dur}s`,
+    ["--target-y" as string]: `${geo.targetY}px`,
+    ["--dur" as string]: `${durMs / 1000}s`,
   } as React.CSSProperties;
 
   const rocketCls = [
@@ -72,18 +71,18 @@ export function Rocket({
       <div className="nebula" aria-hidden />
 
       {/* planets — the destination one glows */}
-      {Object.entries(DESTINATIONS).map(([mult, p]) => {
+      {Object.entries(GEO).map(([mult, p]) => {
         const isTarget = won && Number(mult) === multiplier;
         return (
           <div
-            key={p.name}
+            key={p.className}
             className={`planet ${p.className} ${isTarget ? "target" : "dim"}`}
             style={{ top: p.top }}
           >
             <span className="ring" />
             {isTarget && (
               <span className="planetLabel">
-                {p.name} · X{mult}
+                {DEST_META[Number(mult)].name} · X{mult}
               </span>
             )}
           </div>
