@@ -57,91 +57,303 @@ body {
   color: var(--red2);
 }
 
-/* ---------- stage / rocket ---------- */
+/* ---------- 3D space scene ---------- */
 .stage {
   margin: 12px 0;
 }
-.rocketScene {
+.scene3d {
   position: relative;
-  height: 340px;
-  border-radius: 20px;
+  height: 440px;
+  border-radius: 22px;
   overflow: hidden;
   background:
-    radial-gradient(600px 300px at 50% 120%, #21336e 0%, transparent 70%),
-    linear-gradient(180deg, #0c1640 0%, #060c22 100%);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
+    radial-gradient(120% 80% at 50% 115%, #20408f 0%, transparent 55%),
+    linear-gradient(180deg, #050a24 0%, #02030d 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.6);
+  perspective: 800px;
 }
-.stars {
+
+/* stars */
+.starLayer {
   position: absolute;
-  inset: 0;
+  inset: -50% 0;
+  background-repeat: repeat;
+  will-change: transform;
+}
+.s1 {
   background-image:
-    radial-gradient(1.5px 1.5px at 20% 30%, #fff 50%, transparent),
-    radial-gradient(1.5px 1.5px at 70% 20%, #fff 50%, transparent),
-    radial-gradient(1px 1px at 40% 60%, var(--gold) 50%, transparent),
-    radial-gradient(1.5px 1.5px at 85% 50%, #fff 50%, transparent),
-    radial-gradient(1px 1px at 15% 70%, var(--gold) 50%, transparent);
+    radial-gradient(1px 1px at 20% 30%, #fff, transparent),
+    radial-gradient(1px 1px at 75% 15%, #fff, transparent),
+    radial-gradient(1px 1px at 45% 70%, #cfe0ff, transparent),
+    radial-gradient(1px 1px at 90% 55%, #fff, transparent),
+    radial-gradient(1px 1px at 10% 85%, #fff, transparent);
+  background-size: 220px 220px;
+  opacity: 0.8;
+  animation: drift 90s linear infinite;
+}
+.s2 {
+  background-image:
+    radial-gradient(1.6px 1.6px at 35% 25%, var(--gold), transparent),
+    radial-gradient(1.6px 1.6px at 80% 65%, #9ec4ff, transparent),
+    radial-gradient(1.6px 1.6px at 15% 55%, #fff, transparent);
+  background-size: 320px 320px;
   opacity: 0.7;
+  animation: drift 60s linear infinite reverse;
+}
+.starLayer.warp {
+  animation: warpMove 0.5s linear infinite;
+}
+.s2.warp {
+  animation: warpMove 0.32s linear infinite;
+}
+@keyframes drift {
+  to { transform: translateY(40px); }
+}
+@keyframes warpMove {
+  from { transform: translateY(0); }
+  to { transform: translateY(90px); }
 }
 
-.rocket {
-  position: relative;
-  margin-bottom: 24px;
-  transition: transform 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-  font-size: 72px;
-  line-height: 1;
+.nebula {
+  position: absolute;
+  top: 8%;
+  left: 12%;
+  width: 240px;
+  height: 200px;
+  background: radial-gradient(circle at 50% 50%, rgba(120, 80, 220, 0.35), transparent 70%);
+  filter: blur(12px);
+  animation: hue 12s ease-in-out infinite alternate;
 }
-.rocketBody {
-  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.5));
-}
-.isLaunching {
-  animation: shake 0.18s infinite;
-}
-.isWin .rocketBody {
-  animation: none;
-}
-.isFail {
-  animation: tumble 0.9s forwards;
+@keyframes hue {
+  to { filter: blur(16px) hue-rotate(60deg); }
 }
 
-.flame {
+/* planets */
+.planet {
   position: absolute;
   left: 50%;
-  bottom: -6px;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
   transform: translateX(-50%);
-  width: 26px;
-  height: 46px;
-  background: linear-gradient(180deg, var(--gold), var(--red), transparent);
-  border-radius: 0 0 50% 50%;
+}
+.planet.dim {
+  opacity: 0.32;
+  filter: saturate(0.7) brightness(0.8);
+  transform: translateX(-50%) scale(0.55);
+}
+.planet.target {
+  animation: floaty 4s ease-in-out infinite;
+}
+.mars { left: 70%; background: radial-gradient(circle at 34% 30%, #ff9c6b, #c1440e 68%, #6e2606); }
+.jupiter { left: 30%; width: 88px; height: 88px; background: radial-gradient(circle at 34% 30%, #f3d6ad, #b27c45 60%, #6e4a26); }
+.saturn { left: 68%; background: radial-gradient(circle at 34% 30%, #f7da93, #b88e34 65%, #6f521b); }
+.neptune { left: 46%; width: 100px; height: 100px; background: radial-gradient(circle at 34% 30%, #8ab6ff, #2c43c0 60%, #141f63); }
+.planet.target {
+  box-shadow: 0 0 38px rgba(255, 255, 255, 0.25), inset -8px -8px 18px rgba(0, 0, 0, 0.45);
+}
+.neptune.target { box-shadow: 0 0 46px rgba(120, 160, 255, 0.6), inset -8px -8px 18px rgba(0,0,0,0.5); }
+
+.ring { display: none; }
+.saturn .ring {
+  display: block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 160%;
+  height: 46%;
+  transform: translate(-50%, -50%) rotate(-22deg);
+  border: 6px solid rgba(245, 220, 150, 0.75);
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(245, 220, 150, 0.35);
+}
+.planetLabel {
+  position: absolute;
+  top: 104%;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+  background: rgba(0, 0, 0, 0.5);
+  padding: 2px 8px;
+  border-radius: 8px;
+}
+@keyframes floaty {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, -8px); }
+}
+
+/* asteroid */
+.asteroid {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 40px;
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.6));
+  animation: spin 9s linear infinite;
+}
+.asteroid.hit { animation: asteroidShake 0.4s ease-in-out; }
+@keyframes spin { to { transform: translateX(-50%) rotate(360deg); } }
+@keyframes asteroidShake {
+  0%, 100% { transform: translateX(-50%); }
+  25% { transform: translate(-54%, 2px); }
+  75% { transform: translate(-46%, -2px); }
+}
+
+/* rocket */
+.rocket3d {
+  position: absolute;
+  left: 50%;
+  bottom: 70px;
+  transform: translate(-50%, 0);
+  transform-origin: 50% 90%;
+  z-index: 4;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.55));
+}
+.rocketSvg { display: block; }
+.rumbling { animation: rumble 0.1s linear infinite; }
+.ascending { animation: ascend var(--dur) cubic-bezier(0.42, 0, 0.3, 1) forwards; }
+.crashing { animation: ascendCrash var(--dur) ease-out forwards; }
+
+@keyframes rumble {
+  0%, 100% { transform: translate(-50%, 0); }
+  25% { transform: translate(calc(-50% - 1.5px), 0); }
+  75% { transform: translate(calc(-50% + 1.5px), 0); }
+}
+@keyframes ascend {
+  0% { transform: translate(-50%, 0) scale(1); }
+  12% { transform: translate(-50%, -10px) scale(1); }
+  100% { transform: translate(-50%, var(--target-y)) scale(0.42); }
+}
+@keyframes ascendCrash {
+  0% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+  68% { transform: translate(-50%, var(--target-y)) scale(0.6) rotate(0deg); opacity: 1; }
+  82% { transform: translate(-50%, var(--target-y)) scale(0.6) rotate(20deg); opacity: 1; }
+  100% { transform: translate(-50%, calc(var(--target-y) + 26px)) scale(0.4) rotate(130deg); opacity: 0; }
+}
+
+.thrust {
+  position: absolute;
+  left: 50%;
+  bottom: -2px;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 40px;
+  background: linear-gradient(180deg, #fff 0%, var(--gold) 30%, var(--red) 70%, transparent);
+  border-radius: 0 0 60% 60%;
   filter: blur(2px);
-  animation: flicker 0.12s infinite alternate;
+  animation: thrustFlicker 0.08s infinite alternate;
+}
+.ascending .thrust { height: 60px; }
+@keyframes thrustFlicker {
+  from { opacity: 0.75; height: 34px; }
+  to { opacity: 1; height: 56px; }
 }
 
-@keyframes shake {
-  0% { transform: translate(-1px, 0); }
-  50% { transform: translate(1px, -1px); }
-  100% { transform: translate(-1px, 1px); }
+/* explosion */
+.boom {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -20%) scale(0.2);
+  font-size: 70px;
+  opacity: 0;
+  z-index: 5;
+  animation: boomPop 0.7s ease-out both;
+  animation-delay: calc(var(--dur) * 0.65);
 }
-@keyframes flicker {
-  from { opacity: 0.7; height: 40px; }
-  to { opacity: 1; height: 52px; }
-}
-@keyframes tumble {
-  to { transform: translateY(60px) rotate(120deg); opacity: 0.25; }
+@keyframes boomPop {
+  0% { transform: translate(-50%, -20%) scale(0.2); opacity: 0; }
+  25% { opacity: 1; }
+  100% { transform: translate(-50%, -20%) scale(1.7); opacity: 0; }
 }
 
+/* Earth + launch pad */
+.earth {
+  position: absolute;
+  bottom: -210px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 38% 28%, #7fd0ff 0%, #2a7fd0 30%, #14543f 55%, #0a2e6e 100%);
+  box-shadow: 0 0 70px rgba(80, 170, 255, 0.45), inset -30px -20px 60px rgba(0, 0, 0, 0.5);
+  z-index: 2;
+}
+.pad {
+  position: absolute;
+  bottom: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 64px;
+  height: 14px;
+  background: linear-gradient(180deg, #4a5680, #232d4d);
+  border-radius: 4px 4px 2px 2px;
+  z-index: 3;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+/* Elon */
+.elon {
+  position: absolute;
+  bottom: 64px;
+  left: 14px;
+  z-index: 4;
+  text-align: center;
+}
+.elon .bubble {
+  background: #fff;
+  color: #0a1330;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 8px;
+  border-radius: 10px;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  position: relative;
+  animation: bob 1.4s ease-in-out infinite;
+}
+.elon .bubble::after {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  left: 14px;
+  border: 5px solid transparent;
+  border-top-color: #fff;
+}
+.elonBody {
+  font-size: 30px;
+  animation: bob 1.4s ease-in-out infinite;
+}
+.elonName {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* result badge */
 .multiBadge {
   position: absolute;
-  top: 16px;
+  top: 14px;
   left: 50%;
   transform: translateX(-50%);
   font-size: 40px;
   font-weight: 900;
-  padding: 6px 18px;
+  padding: 6px 20px;
   border-radius: 14px;
   backdrop-filter: blur(4px);
+  z-index: 6;
+  animation: badgePop 0.5s ease-out both;
+  animation-delay: calc(var(--dur) - 0.2s);
 }
 .multiBadge.good {
   color: #0a1330;
@@ -150,7 +362,17 @@ body {
 }
 .multiBadge.bad {
   color: #fff;
-  background: rgba(226, 35, 26, 0.85);
+  background: rgba(226, 35, 26, 0.9);
+  box-shadow: 0 0 30px rgba(226, 35, 26, 0.5);
+}
+@keyframes badgePop {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.4); }
+  100% { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rumbling, .ascending, .crashing, .starLayer, .asteroid, .planet.target,
+  .elon .bubble, .elonBody, .thrust, .boom, .multiBadge { animation: none; }
 }
 
 /* ---------- panel ---------- */
