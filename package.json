@@ -1,0 +1,27 @@
+{
+  "name": "kripto-nr1",
+  "version": "1.0.0",
+  "private": false,
+  "license": "MIT",
+  "description": "KRIPTO NR.1 — open-source rocket crash game on Base (testnet by default)",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.59.0",
+    "next": "^15.1.6",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "viem": "^2.21.55",
+    "wagmi": "^2.14.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.2"
+  }
+}
