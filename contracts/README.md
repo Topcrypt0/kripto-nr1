@@ -19,7 +19,7 @@ private key with anyone (including AI tools).**
    - In your wallet, select the **Base** network (mainnet) — chain id `8453`.
      (For safe testing first, use **Base Sepolia**, chain id `84532`.)
    - Optional: type an ETH amount in the **VALUE** field to seed the bankroll on
-     deploy (e.g. `1` ETH so 0.1 ETH bets at X10 are payable).
+     deploy (e.g. `0.01` ETH so 0.001 ETH bets at X10 are payable).
    - Click **Deploy** and confirm in your wallet.
 5. Copy the deployed contract address.
 
@@ -29,12 +29,12 @@ The contract must hold enough ETH to cover the biggest possible payout for a
 single bet:
 
 ```
-required bankroll >= MAX_BET * MAX_MULTIPLIER = 0.1 * 10 = 1 ETH
+required bankroll >= MAX_BET * MAX_MULTIPLIER = 0.001 * 10 = 0.01 ETH
 ```
 
 If the balance is lower, large bets are rejected by the on-chain solvency check.
 To add funds later: send ETH directly to the contract address, or call `fund()`.
-Lower `MAX_BET` in the contract before deploying if you don't want to lock up 1 ETH.
+Adjust `MAX_BET` in the contract before deploying to change how much you lock up.
 
 ## Owner controls
 

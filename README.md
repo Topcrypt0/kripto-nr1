@@ -4,7 +4,7 @@ Open-source rocket **crash-style game** on the **Base** blockchain. Launch the
 rocket "KRIPTO NR.1", bet ETH, and win a multiplier of your stake:
 
 - **X0** (rocket failed) · **X2** · **X3** · **X5** · **X10**
-- Min bet **0.0001 ETH** · Max bet **0.1 ETH**
+- Min bet **0.0001 ETH** · Max bet **0.001 ETH**
 - House edge ≈ 2% (EV ≈ 0.98)
 
 Built with **Next.js (App Router)**, **wagmi/viem**, and a small **Solidity**
@@ -46,8 +46,8 @@ npm run dev                     # http://localhost:3000
 ## Deploy the contract
 
 See [`contracts/README.md`](./contracts/README.md). Easiest path is Remix — no
-local toolchain needed. Remember to **fund the bankroll** (≥ 1 ETH for 0.1 ETH
-bets at X10).
+local toolchain needed. Remember to **fund the bankroll** (≥ 0.01 ETH for 0.001
+ETH bets at X10).
 
 ## Deploy the frontend (Vercel)
 

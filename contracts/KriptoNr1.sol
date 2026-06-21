@@ -28,7 +28,7 @@ contract KriptoNr1 {
     bool public paused;
 
     uint256 public constant MIN_BET = 0.0001 ether;
-    uint256 public constant MAX_BET = 0.1 ether;
+    uint256 public constant MAX_BET = 0.001 ether;
     uint256 public constant MAX_MULTIPLIER = 10;
     uint256 public constant BPS = 10_000;
 

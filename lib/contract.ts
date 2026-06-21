@@ -5,7 +5,7 @@ export const CONTRACT_ADDRESS = (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS ??
 
 // Bet bounds — must match the Solidity contract constants.
 export const MIN_BET = "0.0001"; // ETH
-export const MAX_BET = "0.1"; // ETH
+export const MAX_BET = "0.001"; // ETH
 
 export const kriptoNr1Abi = [
   {

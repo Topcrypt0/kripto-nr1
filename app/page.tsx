@@ -28,7 +28,7 @@ type GameResult = {
   payout: bigint;
 };
 
-const PRESETS = ["0.0001", "0.001", "0.01", "0.05", "0.1"];
+const PRESETS = ["0.0001", "0.0002", "0.0005", "0.001"];
 
 export default function Home() {
   const { address, isConnected, chainId } = useAccount();
