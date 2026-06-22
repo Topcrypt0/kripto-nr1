@@ -38,10 +38,22 @@ npm run dev                     # http://localhost:3000
 
 ### Environment variables
 
-| Variable                       | Example                  | Meaning                          |
-| ------------------------------ | ------------------------ | -------------------------------- |
-| `NEXT_PUBLIC_CHAIN`            | `base` / `baseSepolia`   | Which Base network to use        |
-| `NEXT_PUBLIC_CONTRACT_ADDRESS` | `0xabc…`                 | Deployed `KriptoNr1` address     |
+| Variable                       | Example                  | Meaning                            |
+| ------------------------------ | ------------------------ | ---------------------------------- |
+| `NEXT_PUBLIC_CHAIN`            | `base` / `baseSepolia`   | Which Base network to use          |
+| `NEXT_PUBLIC_CONTRACT_ADDRESS` | `0xabc…`                 | Deployed `KriptoNr1` address       |
+| `NEXT_PUBLIC_BUILDER_CODE`     | `bc_xxxx`                | Builder Code for dashboard metrics |
+| `BASE_API_KEY` (secret)        | `bdev_…`                 | base.dev API key — optional, secret |
+
+## Showing up in the Base builder dashboard
+
+The Base dashboard only counts transactions that are **tagged with your Builder
+Code**. This app tags every `launch()` transaction using an
+[ERC-8021](https://docs.base.org/base-chain/builder-codes/app-developers)
+`dataSuffix` (see `lib/wagmi.ts`). Metrics count **real mainnet transactions**, so
+the numbers stay at 0 until someone actually plays on Base mainnet with this build
+deployed. `BASE_API_KEY` is a secret base.dev key for data APIs — not required for
+the game; keep it out of git and rotate it if it leaks.
 
 ## Deploy the contract
 

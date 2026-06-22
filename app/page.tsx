@@ -17,7 +17,7 @@ import {
   MIN_BET,
   kriptoNr1Abi,
 } from "@/lib/contract";
-import { activeChain } from "@/lib/wagmi";
+import { DATA_SUFFIX, activeChain } from "@/lib/wagmi";
 import { destMeta } from "@/lib/destinations";
 import { playCrash, playLaunch, playWin, unlockAudio } from "@/lib/sound";
 import { Rocket } from "@/components/Rocket";
@@ -174,6 +174,7 @@ export default function Home() {
         abi: kriptoNr1Abi,
         functionName: "launch",
         value: parseEther(bet),
+        dataSuffix: DATA_SUFFIX,
       });
 
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
