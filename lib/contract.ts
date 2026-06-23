@@ -20,7 +20,28 @@ export const kriptoNr1Abi = [
   },
   {
     type: "function",
+    name: "claim",
+    stateMutability: "nonpayable",
+    inputs: [],
+    outputs: [{ name: "amount", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "winnings",
+    stateMutability: "view",
+    inputs: [{ name: "", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
     name: "bankroll",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "availableBankroll",
     stateMutability: "view",
     inputs: [],
     outputs: [{ name: "", type: "uint256" }],
@@ -41,6 +62,14 @@ export const kriptoNr1Abi = [
       { name: "multiplier", type: "uint256", indexed: false },
       { name: "payout", type: "uint256", indexed: false },
       { name: "roll", type: "uint256", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "Claim",
+    inputs: [
+      { name: "player", type: "address", indexed: true },
+      { name: "amount", type: "uint256", indexed: false },
     ],
   },
 ] as const;

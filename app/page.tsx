@@ -47,6 +47,7 @@ export default function Home() {
   const [result, setResult] = useState<GameResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [muted, setMuted] = useState(false);
+  const [claiming, setClaiming] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
   const mutedRef = useRef(muted);
@@ -83,6 +84,16 @@ export default function Home() {
     functionName: "bankroll",
     query: { refetchInterval: 15_000, enabled: contractConfigured },
   });
+
+  const { data: pendingWinnings, refetch: refetchWinnings } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: kriptoNr1Abi,
+    functionName: "winnings",
+    args: address ? [address] : undefined,
+    query: { enabled: contractConfigured && !!address, refetchInterval: 15_000 },
+  });
+
+  const hasWinnings = (pendingWinnings ?? 0n) > 0n;
 
   const fetchHistory = useCallback(async () => {
     if (!publicClient || !contractConfigured) return;
@@ -194,6 +205,7 @@ export default function Home() {
       const mult = Number(ev.multiplier);
       setResult({ multiplier: mult, bet: ev.bet, payout: ev.payout });
       setPhase("result");
+      if (mult > 0) void refetchWinnings();
 
       // optimistic history entry (RPC may lag a moment)
       setHistory((prev) => [
@@ -221,6 +233,28 @@ export default function Home() {
         e instanceof Error ? e.message : "Transaction failed or rejected";
       setError(msg.split("\n")[0].slice(0, 160));
       setPhase("idle");
+    }
+  }
+
+  async function handleClaim() {
+    if (!publicClient) return;
+    setError(null);
+    try {
+      setClaiming(true);
+      const hash = await writeContractAsync({
+        address: CONTRACT_ADDRESS,
+        abi: kriptoNr1Abi,
+        functionName: "claim",
+        dataSuffix: DATA_SUFFIX,
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+      await refetchWinnings();
+      if (!muted) playWin();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Claim failed or rejected";
+      setError(msg.split("\n")[0].slice(0, 160));
+    } finally {
+      setClaiming(false);
     }
   }
 
@@ -280,6 +314,18 @@ export default function Home() {
           )}
         </div>
 
+        {isConnected && !wrongChain && hasWinnings && phase !== "result" && (
+          <button
+            className="btn launch"
+            onClick={handleClaim}
+            disabled={claiming}
+          >
+            {claiming
+              ? "Claiming…"
+              : `💰 Claim ${Number(formatEther(pendingWinnings!)).toFixed(4)} ETH`}
+          </button>
+        )}
+
         {!isConnected ? (
           <div className="connectRow">
             {connectors.map((c) => (
@@ -306,9 +352,20 @@ export default function Home() {
               <p className="lose">💥 Rocket failed — X0. Try again!</p>
             ) : (
               <p className="win">
-                🎉 X{result.multiplier}! You won{" "}
-                {Number(formatEther(result.payout)).toFixed(4)} ETH
+                🎉 X{result.multiplier}! Won{" "}
+                {Number(formatEther(result.payout)).toFixed(4)} ETH — claim it!
               </p>
+            )}
+            {hasWinnings && (
+              <button
+                className="btn launch"
+                onClick={handleClaim}
+                disabled={claiming}
+              >
+                {claiming
+                  ? "Claiming…"
+                  : `💰 Claim ${Number(formatEther(pendingWinnings!)).toFixed(4)} ETH`}
+              </button>
             )}
             <button className="btn primary" onClick={reset}>
               Launch again
