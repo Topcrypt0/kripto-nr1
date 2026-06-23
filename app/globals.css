@@ -146,14 +146,17 @@ body {
 .planet.target {
   animation: floaty 4s ease-in-out infinite;
 }
-.mars { left: 70%; background: radial-gradient(circle at 34% 30%, #ff9c6b, #c1440e 68%, #6e2606); }
-.jupiter { left: 30%; width: 88px; height: 88px; background: radial-gradient(circle at 34% 30%, #f3d6ad, #b27c45 60%, #6e4a26); }
-.saturn { left: 68%; background: radial-gradient(circle at 34% 30%, #f7da93, #b88e34 65%, #6f521b); }
-.neptune { left: 46%; width: 100px; height: 100px; background: radial-gradient(circle at 34% 30%, #8ab6ff, #2c43c0 60%, #141f63); }
+.mars { left: 70%; }
+.jupiter { left: 30%; width: 88px; height: 88px; }
+.saturn { left: 68%; }
+.neptune { left: 46%; width: 100px; height: 100px; }
+.planet svg { width: 100%; height: 100%; overflow: visible; display: block; }
 .planet.target {
-  box-shadow: 0 0 38px rgba(255, 255, 255, 0.25), inset -8px -8px 18px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 38px rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
 }
-.neptune.target { box-shadow: 0 0 46px rgba(120, 160, 255, 0.6), inset -8px -8px 18px rgba(0,0,0,0.5); }
+.neptune.target { box-shadow: 0 0 46px rgba(120, 160, 255, 0.55); }
+.saturn.target { box-shadow: 0 0 40px rgba(245, 220, 150, 0.5); }
 
 .ring { display: none; }
 .saturn .ring {
@@ -279,11 +282,11 @@ body {
   width: 420px;
   height: 420px;
   border-radius: 50%;
-  background:
-    radial-gradient(circle at 38% 28%, #7fd0ff 0%, #2a7fd0 30%, #14543f 55%, #0a2e6e 100%);
-  box-shadow: 0 0 70px rgba(80, 170, 255, 0.45), inset -30px -20px 60px rgba(0, 0, 0, 0.5);
+  background: transparent;
+  box-shadow: 0 0 70px rgba(80, 170, 255, 0.4);
   z-index: 2;
 }
+.earth svg { width: 100%; height: 100%; display: block; }
 .pad {
   position: absolute;
   bottom: 56px;
