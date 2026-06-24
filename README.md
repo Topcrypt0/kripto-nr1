@@ -72,11 +72,13 @@ ETH bets at X10).
 
 ## How it works
 
-- `contracts/KriptoNr1.sol` — holds the bankroll, validates bets
-  (min/max + solvency), rolls an outcome, and **credits** winnings to a
-  claimable balance. Two-step play: `launch()` takes the bet and locks the
-  result (no ETH sent back, so wallets show a plain safe transfer with no
-  outcome preview), then `claim()` withdraws winnings.
+- `contracts/KriptoNr1.sol` — **commit-reveal** in two blocks. `launch()` takes
+  the bet in block N and reserves the worst-case payout; no result is computed
+  yet, so wallets (including Base Account smart wallets) show a plain transfer
+  with no outcome preview. `resolve(player)` from block N+2 derives the outcome
+  from `blockhash(N+1)` and pays instantly. The bet is irreversible before the
+  result is known, so there's no "inspect then revert on loss" exploit and no
+  `tx.origin` restriction.
 - `app/page.tsx` — wallet connect, bet UI, sends `launch()` and reads the
   `Launch` event from the receipt to show the result.
 - `components/Rocket.tsx` — the rocket animation reacts to the result.

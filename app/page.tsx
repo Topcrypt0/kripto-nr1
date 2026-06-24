@@ -23,12 +23,21 @@ import { playCrash, playLaunch, playWin, unlockAudio } from "@/lib/sound";
 import { Rocket } from "@/components/Rocket";
 import { History, type HistoryItem } from "@/components/History";
 
-type Phase = "idle" | "launching" | "result";
+type Phase = "idle" | "committing" | "revealing" | "result";
 
 type GameResult = {
   multiplier: number;
   bet: bigint;
   payout: bigint;
+  refunded: boolean;
+};
+
+type ResolvedArgs = {
+  bet: bigint;
+  multiplier: bigint;
+  payout: bigint;
+  roll: bigint;
+  refunded: boolean;
 };
 
 const PRESETS = ["0.0001", "0.0002", "0.0005", "0.001"];
@@ -47,7 +56,6 @@ export default function Home() {
   const [result, setResult] = useState<GameResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [muted, setMuted] = useState(false);
-  const [claiming, setClaiming] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
   const mutedRef = useRef(muted);
@@ -59,7 +67,6 @@ export default function Home() {
   const contractConfigured =
     CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000";
 
-  // restore prefs + history on mount
   useEffect(() => {
     try {
       setMuted(localStorage.getItem("kr1_muted") === "1");
@@ -85,15 +92,16 @@ export default function Home() {
     query: { refetchInterval: 15_000, enabled: contractConfigured },
   });
 
-  const { data: pendingWinnings, refetch: refetchWinnings } = useReadContract({
+  const { data: pendingGame, refetch: refetchGames } = useReadContract({
     address: CONTRACT_ADDRESS,
     abi: kriptoNr1Abi,
-    functionName: "winnings",
+    functionName: "games",
     args: address ? [address] : undefined,
-    query: { enabled: contractConfigured && !!address, refetchInterval: 15_000 },
+    query: { enabled: contractConfigured && !!address, refetchInterval: 12_000 },
   });
 
-  const hasWinnings = (pendingWinnings ?? 0n) > 0n;
+  // games() returns [bet, targetBlock, active]
+  const hasPending = pendingGame?.[2] === true;
 
   const fetchHistory = useCallback(async () => {
     if (!publicClient || !contractConfigured) return;
@@ -103,7 +111,7 @@ export default function Home() {
       const logs = await publicClient.getContractEvents({
         address: CONTRACT_ADDRESS,
         abi: kriptoNr1Abi,
-        eventName: "Launch",
+        eventName: "Resolved",
         fromBlock,
         toBlock: "latest",
       });
@@ -135,7 +143,7 @@ export default function Home() {
         return [...extra, ...onChain].slice(0, 10);
       });
     } catch {
-      /* RPC range limits / hiccups — keep local history */
+      /* keep local history on RPC hiccups */
     }
   }, [publicClient, contractConfigured]);
 
@@ -162,6 +170,107 @@ export default function Home() {
     });
   }
 
+  async function waitForBlock(target: bigint) {
+    if (!publicClient) return;
+    for (let i = 0; i < 40; i++) {
+      const bn = await publicClient.getBlockNumber();
+      if (bn > target) return;
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+    throw new Error("Timed out waiting for the reveal block — try Reveal again.");
+  }
+
+  // Step 2: reveal + pay. targetBlock is read from chain if not provided.
+  async function resolveGame(targetBlock?: bigint, betWei?: bigint) {
+    if (!publicClient || !address) return;
+    setPhase("revealing");
+
+    let target = targetBlock;
+    let stake = betWei;
+    if (target === undefined) {
+      const g = (await publicClient.readContract({
+        address: CONTRACT_ADDRESS,
+        abi: kriptoNr1Abi,
+        functionName: "games",
+        args: [address],
+      })) as readonly [bigint, bigint, boolean];
+      if (!g[2]) {
+        setPhase("idle");
+        return;
+      }
+      stake = g[0];
+      target = g[1];
+    }
+
+    await waitForBlock(target);
+
+    const hash = await writeContractAsync({
+      address: CONTRACT_ADDRESS,
+      abi: kriptoNr1Abi,
+      functionName: "resolve",
+      args: [address],
+      dataSuffix: DATA_SUFFIX,
+    });
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    if (receipt.status === "reverted") {
+      throw new Error("Reveal reverted on-chain — try Reveal again.");
+    }
+
+    let ev = parseEventLogs({
+      abi: kriptoNr1Abi,
+      eventName: "Resolved",
+      logs: receipt.logs,
+    })[0]?.args as ResolvedArgs | undefined;
+
+    if (!ev) {
+      const refetched = await publicClient.getContractEvents({
+        address: CONTRACT_ADDRESS,
+        abi: kriptoNr1Abi,
+        eventName: "Resolved",
+        blockHash: receipt.blockHash,
+      });
+      ev = refetched.find((l) => l.transactionHash === hash)?.args as
+        | ResolvedArgs
+        | undefined;
+    }
+    if (!ev) {
+      throw new Error("Couldn't read the result (RPC hiccup) — check history.");
+    }
+
+    const mult = Number(ev.multiplier);
+    setResult({
+      multiplier: mult,
+      bet: ev.bet ?? stake ?? 0n,
+      payout: ev.payout,
+      refunded: ev.refunded,
+    });
+    setPhase("result");
+
+    setHistory((prev) =>
+      [
+        {
+          txHash: hash,
+          player: address,
+          multiplier: mult,
+          payoutWei: ev!.payout.toString(),
+        },
+        ...prev.filter((p) => p.txHash !== hash),
+      ].slice(0, 10),
+    );
+
+    const durMs = destMeta(mult).durMs;
+    const delay = mult > 0 ? durMs * 0.85 : durMs * 0.65;
+    window.setTimeout(() => {
+      if (mutedRef.current) return;
+      if (mult > 0) playWin();
+      else playCrash();
+    }, delay);
+
+    void refetchGames();
+    window.setTimeout(fetchHistory, 4000);
+  }
+
+  // Step 1: commit the bet, then auto-reveal.
   async function handleLaunch() {
     setError(null);
     setResult(null);
@@ -179,75 +288,21 @@ export default function Home() {
     if (!muted) playLaunch();
 
     try {
-      setPhase("launching");
+      setPhase("committing");
+      const stake = parseEther(bet);
       const hash = await writeContractAsync({
         address: CONTRACT_ADDRESS,
         abi: kriptoNr1Abi,
         functionName: "launch",
-        value: parseEther(bet),
+        value: stake,
         dataSuffix: DATA_SUFFIX,
       });
-
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
       if (receipt.status === "reverted") {
-        throw new Error("Transaction reverted on-chain — please try again.");
+        throw new Error("Launch reverted on-chain — please try again.");
       }
-
-      type LaunchArgs = { multiplier: bigint; bet: bigint; payout: bigint };
-
-      let ev = parseEventLogs({
-        abi: kriptoNr1Abi,
-        eventName: "Launch",
-        logs: receipt.logs,
-      })[0]?.args as LaunchArgs | undefined;
-
-      // Some public RPCs return a receipt without full logs — re-query the
-      // event from the mined block as a fallback before giving up.
-      if (!ev) {
-        const refetched = await publicClient.getContractEvents({
-          address: CONTRACT_ADDRESS,
-          abi: kriptoNr1Abi,
-          eventName: "Launch",
-          blockHash: receipt.blockHash,
-        });
-        ev = refetched.find((l) => l.transactionHash === hash)?.args as
-          | LaunchArgs
-          | undefined;
-      }
-
-      if (!ev) {
-        throw new Error(
-          "Couldn't read the result (RPC hiccup). Your bet went through — check the recent launches.",
-        );
-      }
-
-      const mult = Number(ev.multiplier);
-      setResult({ multiplier: mult, bet: ev.bet, payout: ev.payout });
-      setPhase("result");
-      if (mult > 0) void refetchWinnings();
-
-      // optimistic history entry (RPC may lag a moment)
-      setHistory((prev) => [
-        {
-          txHash: hash,
-          player: address ?? "0x",
-          multiplier: mult,
-          payoutWei: ev.payout.toString(),
-        },
-        ...prev.filter((p) => p.txHash !== hash),
-      ].slice(0, 10));
-
-      // play the result sound when the rocket reaches its destination
-      const durMs = destMeta(mult).durMs;
-      const delay = mult > 0 ? durMs * 0.85 : durMs * 0.65;
-      window.setTimeout(() => {
-        if (mutedRef.current) return;
-        if (mult > 0) playWin();
-        else playCrash();
-      }, delay);
-
-      window.setTimeout(fetchHistory, 4000);
+      void refetchGames();
+      await resolveGame(receipt.blockNumber + 1n, stake);
     } catch (e: unknown) {
       const msg =
         e instanceof Error ? e.message : "Transaction failed or rejected";
@@ -256,25 +311,15 @@ export default function Home() {
     }
   }
 
-  async function handleClaim() {
-    if (!publicClient) return;
+  async function handleReveal() {
     setError(null);
+    setResult(null);
     try {
-      setClaiming(true);
-      const hash = await writeContractAsync({
-        address: CONTRACT_ADDRESS,
-        abi: kriptoNr1Abi,
-        functionName: "claim",
-        dataSuffix: DATA_SUFFIX,
-      });
-      await publicClient.waitForTransactionReceipt({ hash });
-      await refetchWinnings();
-      if (!muted) playWin();
+      await resolveGame();
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Claim failed or rejected";
+      const msg = e instanceof Error ? e.message : "Reveal failed or rejected";
       setError(msg.split("\n")[0].slice(0, 160));
-    } finally {
-      setClaiming(false);
+      setPhase("idle");
     }
   }
 
@@ -283,6 +328,15 @@ export default function Home() {
     setResult(null);
     setError(null);
   }
+
+  const rocketPhase =
+    phase === "committing" || phase === "revealing"
+      ? "launching"
+      : phase === "result"
+        ? "result"
+        : "idle";
+
+  const busy = phase === "committing" || phase === "revealing";
 
   return (
     <main className="wrap">
@@ -312,7 +366,7 @@ export default function Home() {
       </header>
 
       <section className="stage">
-        <Rocket phase={phase} multiplier={result?.multiplier ?? null} />
+        <Rocket phase={rocketPhase} multiplier={result?.multiplier ?? null} />
       </section>
 
       <section className="panel">
@@ -333,18 +387,6 @@ export default function Home() {
             </span>
           )}
         </div>
-
-        {isConnected && !wrongChain && hasWinnings && phase !== "result" && (
-          <button
-            className="btn launch"
-            onClick={handleClaim}
-            disabled={claiming}
-          >
-            {claiming
-              ? "Claiming…"
-              : `💰 Claim ${Number(formatEther(pendingWinnings!)).toFixed(4)} ETH`}
-          </button>
-        )}
 
         {!isConnected ? (
           <div className="connectRow">
@@ -368,29 +410,28 @@ export default function Home() {
           </button>
         ) : phase === "result" && result ? (
           <div className="resultBox">
-            {result.multiplier === 0 ? (
+            {result.refunded ? (
+              <p className="lose">↩️ Refunded — revealed too late, bet returned.</p>
+            ) : result.multiplier === 0 ? (
               <p className="lose">💥 Rocket failed — X0. Try again!</p>
             ) : (
               <p className="win">
-                🎉 X{result.multiplier}! Won{" "}
-                {Number(formatEther(result.payout)).toFixed(4)} ETH — claim it!
+                🎉 X{result.multiplier}! Paid{" "}
+                {Number(formatEther(result.payout)).toFixed(4)} ETH
               </p>
-            )}
-            {hasWinnings && (
-              <button
-                className="btn launch"
-                onClick={handleClaim}
-                disabled={claiming}
-              >
-                {claiming
-                  ? "Claiming…"
-                  : `💰 Claim ${Number(formatEther(pendingWinnings!)).toFixed(4)} ETH`}
-              </button>
             )}
             <button className="btn primary" onClick={reset}>
               Launch again
             </button>
           </div>
+        ) : busy ? (
+          <button className="btn launch" disabled>
+            {phase === "committing" ? "Launching… (1/2)" : "Revealing… (2/2)"}
+          </button>
+        ) : hasPending ? (
+          <button className="btn launch" onClick={handleReveal}>
+            🚀 Reveal result
+          </button>
         ) : (
           <>
             <label className="label">Bet amount (ETH)</label>
@@ -400,7 +441,6 @@ export default function Home() {
                   key={p}
                   className={`chip ${bet === p ? "active" : ""}`}
                   onClick={() => setBet(p)}
-                  disabled={phase === "launching"}
                 >
                   {p}
                 </button>
@@ -414,15 +454,14 @@ export default function Home() {
               step="0.0001"
               value={bet}
               onChange={(e) => setBet(e.target.value)}
-              disabled={phase === "launching"}
             />
 
             <button
               className="btn launch"
               onClick={handleLaunch}
-              disabled={phase === "launching" || !betValid || !contractConfigured}
+              disabled={!betValid || !contractConfigured}
             >
-              {phase === "launching" ? "Launching…" : "🚀 LAUNCH ROCKET"}
+              🚀 LAUNCH ROCKET
             </button>
 
             <p className="odds">

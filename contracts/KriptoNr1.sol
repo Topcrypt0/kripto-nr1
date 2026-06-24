@@ -2,26 +2,28 @@
 pragma solidity ^0.8.24;
 
 /**
- * @title  KRIPTO NR.1 — rocket "crash" style game on Base
- * @notice Two-step play so wallets can't preview the outcome:
- *           1. launch() — take the bet, roll the result, CREDIT any winnings
- *              to the player's claimable balance. No ETH is sent back, so a
- *              wallet's transaction preview shows only the outgoing bet — a
- *              plain, safe-looking transfer with no "you will receive +X".
- *           2. claim() — the player withdraws their accumulated winnings in a
- *              separate transaction.
+ * @title  KRIPTO NR.1 — rocket "crash" game on Base (commit-reveal)
+ * @notice Two transactions, in two different blocks:
+ *           1. launch()  — place the bet (block N). No result is computed yet,
+ *              the outcome depends on a FUTURE block, so a wallet can't preview
+ *              it and the tx looks like a plain transfer. Worst-case payout is
+ *              reserved from the bankroll so a win is always payable.
+ *           2. resolve() — from block N+2 onward, the result is derived from
+ *              blockhash(N+1) and the player is paid instantly if they won.
  *
- *  Because the roll uses the *inclusion* block's data, a wallet simulation
- *  (run against a different block) cannot reliably predict the outcome.
+ *  Why this is safe:
+ *   - The bet is irreversible before the result is known, so the classic
+ *     "inspect the result, revert on a loss" attack is impossible — no
+ *     tx.origin hack needed, so smart-contract wallets (Base Account) work.
+ *   - Outcome uses a future blockhash the bettor can't predict at commit time.
  *
- *  SECURITY NOTICE — READ BEFORE GOING TO MAINNET
- *  Randomness is on-chain (blockhash, prevrandao, timestamp): fine for a demo,
- *  not VRF-grade. `tx.origin == msg.sender` blocks the atomic "inspect then
- *  revert on loss" attack. For real-money scale, replace `_random()` with
- *  Chainlink VRF and get the contract audited.
+ *  NOTE: blockhash only covers the last 256 blocks (~8 min on Base). If you
+ *  don't resolve in time, resolve() simply refunds your bet.
+ *
+ *  Randomness is still on-chain (not Chainlink VRF). For real-money scale,
+ *  swap the blockhash source for VRF and get an audit.
  */
 contract KriptoNr1 {
-    // --- configuration ---
     address public owner;
     bool public paused;
 
@@ -30,24 +32,28 @@ contract KriptoNr1 {
     uint256 public constant MAX_MULTIPLIER = 10;
     uint256 public constant BPS = 10_000;
 
-    // --- state ---
+    struct Game {
+        uint128 bet;
+        uint64 targetBlock;
+        bool active;
+    }
+
+    /// @notice Pending (committed, not yet resolved) game per player.
+    mapping(address => Game) public games;
+    /// @notice Worst-case payout reserved for all active games (house can't touch it).
+    uint256 public reserved;
+
     bool private _locked;
-    uint256 private _nonce;
 
-    /// @notice Unclaimed winnings per player.
-    mapping(address => uint256) public winnings;
-    /// @notice Sum of all unclaimed winnings (a liability the house can't withdraw).
-    uint256 public totalOwed;
-
-    // --- events ---
-    event Launch(
+    event Committed(address indexed player, uint256 bet, uint256 targetBlock);
+    event Resolved(
         address indexed player,
         uint256 bet,
         uint256 multiplier,
         uint256 payout,
-        uint256 roll
+        uint256 roll,
+        bool refunded
     );
-    event Claim(address indexed player, uint256 amount);
     event BankrollFunded(address indexed from, uint256 amount);
     event Withdraw(address indexed to, uint256 amount);
     event PausedSet(bool paused);
@@ -65,55 +71,82 @@ contract KriptoNr1 {
         _locked = false;
     }
 
-    /// @dev Send ETH on deploy to seed the bankroll.
     constructor() payable {
         owner = msg.sender;
         emit OwnershipTransferred(address(0), msg.sender);
     }
 
     /**
-     * @notice Launch the rocket. Send between MIN_BET and MAX_BET. Any winnings
-     *         are credited to your claimable balance (see claim()), not sent now.
-     * @return multiplier The outcome multiplier (0, 2, 3, 5 or 10).
-     * @return payout     The amount credited to the player (bet * multiplier).
+     * @notice Step 1 — place a bet. The result is decided later by resolve().
+     *         Send between MIN_BET and MAX_BET. No ETH comes back here, so the
+     *         wallet preview shows only the outgoing bet.
+     * @return targetBlock The block whose hash will decide the outcome.
      */
     function launch()
         external
         payable
         noReentrant
-        returns (uint256 multiplier, uint256 payout)
+        returns (uint256 targetBlock)
     {
         require(!paused, "paused");
-        require(tx.origin == msg.sender, "no contracts");
         require(msg.value >= MIN_BET && msg.value <= MAX_BET, "bet out of range");
+        require(!games[msg.sender].active, "resolve previous launch first");
 
-        uint256 roll = _random() % BPS; // 0..9999
-        multiplier = _multiplierForRoll(roll);
-        payout = msg.value * multiplier;
+        uint256 res = msg.value * MAX_MULTIPLIER;
+        // balance already includes this bet; it must cover every reserved payout.
+        require(address(this).balance >= reserved + res, "bankroll too low for this bet");
+        reserved += res;
 
-        if (payout > 0) {
-            // Solvency: balance (already includes this bet) must cover every
-            // owed payout, including this new one.
-            require(
-                address(this).balance >= totalOwed + payout,
-                "bankroll too low for this bet"
-            );
-            winnings[msg.sender] += payout;
-            totalOwed += payout;
-        }
+        targetBlock = block.number + 1;
+        games[msg.sender] = Game({
+            bet: uint128(msg.value),
+            targetBlock: uint64(targetBlock),
+            active: true
+        });
 
-        emit Launch(msg.sender, msg.value, multiplier, payout, roll);
+        emit Committed(msg.sender, msg.value, targetBlock);
     }
 
-    /// @notice Withdraw your accumulated winnings.
-    function claim() external noReentrant returns (uint256 amount) {
-        amount = winnings[msg.sender];
-        require(amount > 0, "nothing to claim");
-        winnings[msg.sender] = 0;
-        totalOwed -= amount;
-        (bool ok, ) = payable(msg.sender).call{value: amount}("");
-        require(ok, "claim transfer failed");
-        emit Claim(msg.sender, amount);
+    /**
+     * @notice Step 2 — reveal the outcome for `player` and pay any winnings.
+     *         Callable by anyone (the result is fixed by the target block, not
+     *         by the caller), so a keeper or the frontend can trigger it.
+     * @return multiplier The outcome (0, 2, 3, 5 or 10).
+     * @return payout     ETH paid to the player.
+     */
+    function resolve(address player)
+        external
+        noReentrant
+        returns (uint256 multiplier, uint256 payout)
+    {
+        Game memory g = games[player];
+        require(g.active, "no pending launch");
+        require(block.number > g.targetBlock, "wait for the reveal block");
+
+        reserved -= uint256(g.bet) * MAX_MULTIPLIER;
+        delete games[player];
+
+        bytes32 bh = blockhash(g.targetBlock);
+        if (bh == 0) {
+            // Missed the 256-block window — refund the bet, no win/loss.
+            (bool r, ) = payable(player).call{value: g.bet}("");
+            require(r, "refund failed");
+            emit Resolved(player, g.bet, 0, 0, 0, true);
+            return (0, 0);
+        }
+
+        uint256 roll = uint256(
+            keccak256(abi.encodePacked(bh, player, g.bet))
+        ) % BPS;
+        multiplier = _multiplierForRoll(roll);
+        payout = uint256(g.bet) * multiplier;
+
+        emit Resolved(player, g.bet, multiplier, payout, roll, false);
+
+        if (payout > 0) {
+            (bool ok, ) = payable(player).call{value: payout}("");
+            require(ok, "payout failed");
+        }
     }
 
     /**
@@ -132,27 +165,8 @@ contract KriptoNr1 {
         return 10;
     }
 
-    /// @dev TESTNET-grade randomness. Replace with Chainlink VRF for mainnet.
-    function _random() internal returns (uint256) {
-        unchecked {
-            _nonce++;
-        }
-        return uint256(
-            keccak256(
-                abi.encodePacked(
-                    blockhash(block.number - 1),
-                    block.prevrandao,
-                    block.timestamp,
-                    msg.sender,
-                    _nonce
-                )
-            )
-        );
-    }
-
     // --- bankroll ---
 
-    /// @notice Add ETH to the bankroll (anyone can fund).
     function fund() external payable {
         emit BankrollFunded(msg.sender, msg.value);
     }
@@ -161,21 +175,19 @@ contract KriptoNr1 {
         emit BankrollFunded(msg.sender, msg.value);
     }
 
-    /// @notice Total ETH held by the contract.
     function bankroll() external view returns (uint256) {
         return address(this).balance;
     }
 
-    /// @notice House funds the owner may withdraw (excludes players' winnings).
+    /// @notice House funds the owner may withdraw (excludes reserved payouts).
     function availableBankroll() external view returns (uint256) {
-        return address(this).balance - totalOwed;
+        return address(this).balance - reserved;
     }
 
     // --- owner controls ---
 
     function withdraw(uint256 amount) external onlyOwner noReentrant {
-        // Never touch ETH that is owed to players as winnings.
-        require(amount <= address(this).balance - totalOwed, "exceeds house funds");
+        require(amount <= address(this).balance - reserved, "exceeds available");
         (bool ok, ) = payable(owner).call{value: amount}("");
         require(ok, "withdraw failed");
         emit Withdraw(owner, amount);
