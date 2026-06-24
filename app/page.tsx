@@ -190,17 +190,37 @@ export default function Home() {
 
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
-      const logs = parseEventLogs({
+      if (receipt.status === "reverted") {
+        throw new Error("Transaction reverted on-chain — please try again.");
+      }
+
+      type LaunchArgs = { multiplier: bigint; bet: bigint; payout: bigint };
+
+      let ev = parseEventLogs({
         abi: kriptoNr1Abi,
         eventName: "Launch",
         logs: receipt.logs,
-      });
+      })[0]?.args as LaunchArgs | undefined;
 
-      const ev = logs[0]?.args as
-        | { multiplier: bigint; bet: bigint; payout: bigint }
-        | undefined;
+      // Some public RPCs return a receipt without full logs — re-query the
+      // event from the mined block as a fallback before giving up.
+      if (!ev) {
+        const refetched = await publicClient.getContractEvents({
+          address: CONTRACT_ADDRESS,
+          abi: kriptoNr1Abi,
+          eventName: "Launch",
+          blockHash: receipt.blockHash,
+        });
+        ev = refetched.find((l) => l.transactionHash === hash)?.args as
+          | LaunchArgs
+          | undefined;
+      }
 
-      if (!ev) throw new Error("Could not read the result from the transaction");
+      if (!ev) {
+        throw new Error(
+          "Couldn't read the result (RPC hiccup). Your bet went through — check the recent launches.",
+        );
+      }
 
       const mult = Number(ev.multiplier);
       setResult({ multiplier: mult, bet: ev.bet, payout: ev.payout });

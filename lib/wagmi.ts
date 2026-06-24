@@ -31,7 +31,9 @@ export const config = createConfig({
   ],
   transports: {
     [baseSepolia.id]: http(),
-    [base.id]: http(),
+    // Optional: set NEXT_PUBLIC_RPC_URL to a dedicated Base RPC for reliability
+    // (the public endpoint rate-limits and can drop logs). Falls back to default.
+    [base.id]: http(process.env.NEXT_PUBLIC_RPC_URL),
   },
   storage: createStorage({ storage: cookieStorage }),
   ssr: true,
