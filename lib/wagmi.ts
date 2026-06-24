@@ -3,9 +3,10 @@ import { base, baseSepolia } from "wagmi/chains";
 import { baseAccount, injected } from "wagmi/connectors";
 import { Attribution } from "ox/erc8021";
 
-// Pick the active chain from env. Defaults to Base Sepolia (testnet).
-const useMainnet = process.env.NEXT_PUBLIC_CHAIN === "base";
-export const activeChain = useMainnet ? base : baseSepolia;
+// Defaults to Base mainnet (the live config). Set NEXT_PUBLIC_CHAIN=baseSepolia
+// to use the testnet instead.
+const useTestnet = process.env.NEXT_PUBLIC_CHAIN === "baseSepolia";
+export const activeChain = useTestnet ? baseSepolia : base;
 
 // Builder Code attribution (ERC-8021). Appended to every transaction so the app
 // shows up with real metrics in the Base builder dashboard. Exported and passed

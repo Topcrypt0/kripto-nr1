@@ -1,7 +1,9 @@
 import type { Address } from "viem";
 
-export const CONTRACT_ADDRESS = (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS ??
-  "0x0000000000000000000000000000000000000000") as Address;
+// Defaults to the live mainnet contract so the app works even if the Vercel env
+// var is missing. The address is public; override with NEXT_PUBLIC_CONTRACT_ADDRESS.
+export const CONTRACT_ADDRESS = (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS ||
+  "0xd51600bDF8cA07b9015c954B96456ac035689082") as Address;
 
 // Bet bounds — must match the Solidity contract constants.
 export const MIN_BET = "0.0001"; // ETH
