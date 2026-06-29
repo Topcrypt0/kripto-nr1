@@ -344,9 +344,12 @@ export default function Home() {
         <div className="brand">
           {/* Swap public/logo.svg for your own image to use the real logo */}
           <img src="/logo.svg" alt="KRIPTO NR.1" className="logoImg" />
-          <span>
-            KRIPTO <span className="accent">NR.1</span>
-          </span>
+          <div className="brandText">
+            <div className="brandTitle">
+              KRIPTO <span className="accent">NR.1</span>
+            </div>
+            <div className="brandSub">Rocket Lottery</div>
+          </div>
         </div>
         <div className="topRight">
           <button
@@ -358,8 +361,12 @@ export default function Home() {
             {muted ? "🔇" : "🔊"}
           </button>
           {isConnected && (
-            <button className="btn ghost" onClick={() => disconnect()}>
-              {address?.slice(0, 6)}…{address?.slice(-4)}
+            <button
+              className="walletPill"
+              onClick={() => disconnect()}
+              title="Disconnect"
+            >
+              <span className="dot" /> {address?.slice(0, 6)}…{address?.slice(-4)}
             </button>
           )}
         </div>
@@ -378,12 +385,16 @@ export default function Home() {
         )}
 
         <div className="netline">
-          <span>
-            Network: <b>{activeChain.name}</b>
+          <span className="netBase">
+            <span className="netSquare" />
+            Network <b>{activeChain.name}</b>
           </span>
           {bankroll !== undefined && (
             <span>
-              Bankroll: <b>{Number(formatEther(bankroll)).toFixed(4)} ETH</b>
+              Bankroll{" "}
+              <b className="mono">
+                {Number(formatEther(bankroll)).toFixed(4)} ETH
+              </b>
             </span>
           )}
         </div>
@@ -411,7 +422,9 @@ export default function Home() {
         ) : phase === "result" && result ? (
           <div className="resultBox">
             {result.refunded ? (
-              <p className="lose">↩️ Refunded — revealed too late, bet returned.</p>
+              <p className="lose">
+                ↩️ Refunded — revealed too late, bet returned.
+              </p>
             ) : result.multiplier === 0 ? (
               <p className="lose">💥 Rocket failed — X0. Try again!</p>
             ) : (
@@ -420,21 +433,27 @@ export default function Home() {
                 {Number(formatEther(result.payout)).toFixed(4)} ETH
               </p>
             )}
-            <button className="btn primary" onClick={reset}>
+            <button className="btn launchAgain" onClick={reset}>
               Launch again
             </button>
           </div>
         ) : busy ? (
-          <button className="btn launch" disabled>
+          <button className="btn launch busy" disabled>
+            <span className="spinner" />
             {phase === "committing" ? "Launching… (1/2)" : "Revealing… (2/2)"}
           </button>
         ) : hasPending ? (
           <button className="btn launch" onClick={handleReveal}>
-            🚀 Reveal result
+            <span className="rk">🚀</span> Reveal result
           </button>
         ) : (
           <>
-            <label className="label">Bet amount (ETH)</label>
+            <div className="betHead">
+              <label className="label">Bet amount</label>
+              <span className="minmax">
+                min {MIN_BET} · max {MAX_BET} ETH
+              </span>
+            </div>
             <div className="presets">
               {PRESETS.map((p) => (
                 <button
@@ -446,27 +465,34 @@ export default function Home() {
                 </button>
               ))}
             </div>
-            <input
-              className="input"
-              type="number"
-              min={MIN_BET}
-              max={MAX_BET}
-              step="0.0001"
-              value={bet}
-              onChange={(e) => setBet(e.target.value)}
-            />
+            <div className="inputWrap">
+              <input
+                className="input"
+                type="number"
+                min={MIN_BET}
+                max={MAX_BET}
+                step="0.0001"
+                value={bet}
+                onChange={(e) => setBet(e.target.value)}
+              />
+              <span className="ethSuffix">ETH</span>
+            </div>
 
             <button
               className="btn launch"
               onClick={handleLaunch}
               disabled={!betValid || !contractConfigured}
             >
-              🚀 LAUNCH ROCKET
+              <span className="rk">🚀</span> LAUNCH ROCKET
             </button>
 
-            <p className="odds">
-              Outcomes: X0 (65%) · X2 (22%) · X3 (8%) · X5 (4%) · X10 (1%)
-            </p>
+            <div className="odds">
+              <span className="o0">X0 65%</span>
+              <span className="o2">X2 22%</span>
+              <span className="o3">X3 8%</span>
+              <span className="o5">X5 4%</span>
+              <span className="o10">X10 1%</span>
+            </div>
           </>
         )}
 
@@ -477,7 +503,7 @@ export default function Home() {
 
       <footer className="foot">
         <span>Open source · MIT</span>
-        <span>
+        <span className="mono">
           Min {MIN_BET} – Max {MAX_BET} ETH
         </span>
       </footer>

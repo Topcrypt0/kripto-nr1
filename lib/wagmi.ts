@@ -1,6 +1,7 @@
 import { http, cookieStorage, createConfig, createStorage } from "wagmi";
 import { base, baseSepolia } from "wagmi/chains";
 import { baseAccount, injected } from "wagmi/connectors";
+import { farcasterMiniApp } from "@farcaster/miniapp-wagmi-connector";
 import { Attribution } from "ox/erc8021";
 
 // Defaults to Base mainnet (the live config). Set NEXT_PUBLIC_CHAIN=baseSepolia
@@ -21,12 +22,14 @@ try {
   DATA_SUFFIX = undefined;
 }
 
-// Base App (post-April 2026) = standard web app + wallet. Use the native Base
-// Account connector plus injected wallets; cookieStorage for SSR in the in-app
-// browser.
+// Base App = Farcaster-style Mini App host. The Mini App connector auto-connects
+// to the host wallet when we run inside Base App / a Farcaster client; outside of
+// one it stays dormant and the Base Account + injected connectors take over.
+// cookieStorage keeps the session through SSR in the in-app browser.
 export const config = createConfig({
   chains: [baseSepolia, base],
   connectors: [
+    farcasterMiniApp(),
     baseAccount({ appName: "KRIPTO NR.1" }),
     injected(),
   ],
