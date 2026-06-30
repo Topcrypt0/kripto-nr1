@@ -20,8 +20,17 @@ import {
 import { DATA_SUFFIX, activeChain } from "@/lib/wagmi";
 import { destMeta } from "@/lib/destinations";
 import { playCrash, playLaunch, playWin, unlockAudio } from "@/lib/sound";
+import {
+  type GameRecord,
+  computeStats,
+  gamePct,
+  loadGames,
+  mergeGames,
+} from "@/lib/stats";
+import { cardUrl, shareCard } from "@/lib/share";
 import { Rocket } from "@/components/Rocket";
 import { History, type HistoryItem } from "@/components/History";
+import { Dashboard } from "@/components/Dashboard";
 
 type Phase = "idle" | "committing" | "revealing" | "result";
 
@@ -57,6 +66,13 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [muted, setMuted] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [games, setGames] = useState<GameRecord[]>([]);
+  // Drives the pending state from the local game flow instead of the laggy
+  // on-chain read, so you can relaunch the instant a game resolves. null = no
+  // local opinion yet (e.g. fresh load) → defer to chain.
+  const [localPending, setLocalPending] = useState<boolean | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const [shareMsg, setShareMsg] = useState<string | null>(null);
 
   const mutedRef = useRef(muted);
   useEffect(() => {
@@ -67,6 +83,8 @@ export default function Home() {
   const contractConfigured =
     CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000";
 
+  const stats = useMemo(() => computeStats(games), [games]);
+
   useEffect(() => {
     try {
       setMuted(localStorage.getItem("kr1_muted") === "1");
@@ -76,6 +94,12 @@ export default function Home() {
       /* ignore */
     }
   }, []);
+
+  // Load this account's ledger; reset the local-pending opinion on switch.
+  useEffect(() => {
+    setGames(loadGames(address));
+    setLocalPending(null);
+  }, [address]);
 
   useEffect(() => {
     try {
@@ -100,8 +124,10 @@ export default function Home() {
     query: { enabled: contractConfigured && !!address, refetchInterval: 12_000 },
   });
 
-  // games() returns [bet, targetBlock, active]
-  const hasPending = pendingGame?.[2] === true;
+  // games() returns [bet, targetBlock, active]. Local flow wins when it has an
+  // opinion; otherwise fall back to the chain read (recovery after a reload).
+  const hasPending =
+    localPending !== null ? localPending : pendingGame?.[2] === true;
 
   const fetchHistory = useCallback(async () => {
     if (!publicClient || !contractConfigured) return;
@@ -142,10 +168,32 @@ export default function Home() {
         );
         return [...extra, ...onChain].slice(0, 10);
       });
+
+      // Backfill this player's ledger from on-chain logs (exact bet + refunded).
+      if (address) {
+        const mine: GameRecord[] = logs
+          .filter(
+            (l) =>
+              (l.args as { player?: string }).player?.toLowerCase() ===
+              address.toLowerCase(),
+          )
+          .map((l) => {
+            const a = l.args as unknown as ResolvedArgs;
+            return {
+              txHash: l.transactionHash ?? "",
+              betWei: (a.bet ?? 0n).toString(),
+              multiplier: Number(a.multiplier),
+              payoutWei: (a.payout ?? 0n).toString(),
+              refunded: Boolean(a.refunded),
+              ts: Number(l.blockNumber ?? 0n),
+            };
+          });
+        if (mine.length) setGames(mergeGames(address, mine));
+      }
     } catch {
       /* keep local history on RPC hiccups */
     }
-  }, [publicClient, contractConfigured]);
+  }, [publicClient, contractConfigured, address]);
 
   useEffect(() => {
     fetchHistory();
@@ -195,6 +243,8 @@ export default function Home() {
         args: [address],
       })) as readonly [bigint, bigint, boolean];
       if (!g[2]) {
+        // Nothing pending on-chain — clear local flag and bail to idle.
+        setLocalPending(false);
         setPhase("idle");
         return;
       }
@@ -238,13 +288,16 @@ export default function Home() {
     }
 
     const mult = Number(ev.multiplier);
+    const stakeWei = ev.bet ?? stake ?? 0n;
     setResult({
       multiplier: mult,
-      bet: ev.bet ?? stake ?? 0n,
+      bet: stakeWei,
       payout: ev.payout,
       refunded: ev.refunded,
     });
     setPhase("result");
+    // The game is settled on-chain — let the player relaunch immediately.
+    setLocalPending(false);
 
     setHistory((prev) =>
       [
@@ -256,6 +309,19 @@ export default function Home() {
         },
         ...prev.filter((p) => p.txHash !== hash),
       ].slice(0, 10),
+    );
+
+    setGames(
+      mergeGames(address, [
+        {
+          txHash: hash,
+          betWei: stakeWei.toString(),
+          multiplier: mult,
+          payoutWei: ev.payout.toString(),
+          refunded: ev.refunded,
+          ts: Date.now(),
+        },
+      ]),
     );
 
     const durMs = destMeta(mult).durMs;
@@ -301,6 +367,8 @@ export default function Home() {
       if (receipt.status === "reverted") {
         throw new Error("Launch reverted on-chain — please try again.");
       }
+      // Bet is committed — there's now a pending game until we reveal it.
+      setLocalPending(true);
       void refetchGames();
       await resolveGame(receipt.blockNumber + 1n, stake);
     } catch (e: unknown) {
@@ -327,6 +395,67 @@ export default function Home() {
     setPhase("idle");
     setResult(null);
     setError(null);
+  }
+
+  async function runShare(
+    params: Parameters<typeof cardUrl>[0],
+    text: string,
+  ) {
+    if (sharing) return;
+    setSharing(true);
+    setShareMsg(null);
+    const outcome = await shareCard(cardUrl(params), text);
+    setSharing(false);
+    setShareMsg(
+      outcome === "cast"
+        ? "Shared to your feed!"
+        : outcome === "web"
+          ? "Shared!"
+          : outcome === "copied"
+            ? "Card link copied!"
+            : "Couldn't share — try again",
+    );
+    window.setTimeout(() => setShareMsg(null), 2600);
+  }
+
+  function shareResult() {
+    if (!result) return;
+    const win = !result.refunded && result.multiplier > 0;
+    const pct = gamePct(result.multiplier, result.refunded);
+    const betEth = Number(formatEther(result.bet)).toFixed(4);
+    const payEth = Number(formatEther(result.payout)).toFixed(4);
+    const name = destMeta(result.multiplier).name;
+    const params = {
+      win,
+      big: result.refunded ? "↩︎" : `X${result.multiplier}`,
+      pct: result.refunded ? "refunded" : `${pct > 0 ? "+" : ""}${pct}%`,
+      sub: result.refunded
+        ? `bet ${betEth} ETH returned`
+        : `${name} · ${betEth} → ${payEth} ETH`,
+    };
+    const text = win
+      ? `🚀 I hit X${result.multiplier} on KRIPTO NR.1 — rocket lottery on Base!`
+      : `💥 KRIPTO NR.1 got me. Revenge launch incoming. Rocket lottery on Base 🚀`;
+    void runShare(params, text);
+  }
+
+  function shareStats() {
+    const up = stats.pnl >= 0n;
+    const pnlEth = Number(
+      formatEther(stats.pnl < 0n ? -stats.pnl : stats.pnl),
+    ).toFixed(4);
+    const params = {
+      win: up,
+      big: `${stats.pnlPct >= 0 ? "+" : "−"}${Math.abs(stats.pnlPct).toFixed(0)}%`,
+      pct: `${up ? "+" : "−"}${pnlEth} ETH`,
+      sub: `${stats.count + stats.refunds} launches · ${stats.winRate.toFixed(0)}% win${
+        stats.best > 0 ? ` · best X${stats.best}` : ""
+      }`,
+    };
+    const text = up
+      ? `📈 ${params.pct} on KRIPTO NR.1 — rocket lottery on Base 🚀`
+      : `Grinding KRIPTO NR.1 on Base. ${stats.count + stats.refunds} launches in 🚀`;
+    void runShare(params, text);
   }
 
   const rocketPhase =
@@ -433,9 +562,18 @@ export default function Home() {
                 {Number(formatEther(result.payout)).toFixed(4)} ETH
               </p>
             )}
-            <button className="btn launchAgain" onClick={reset}>
-              Launch again
-            </button>
+            <div className="resultBtns">
+              <button className="btn launchAgain" onClick={reset}>
+                Launch again
+              </button>
+              <button
+                className="btn shareBtn"
+                onClick={shareResult}
+                disabled={sharing}
+              >
+                {sharing ? "…" : "↗ Share card"}
+              </button>
+            </div>
           </div>
         ) : busy ? (
           <button className="btn launch busy" disabled>
@@ -494,6 +632,12 @@ export default function Home() {
               <span className="o10">X10 1%</span>
             </div>
           </>
+        )}
+
+        {shareMsg && <p className="shareToast">{shareMsg}</p>}
+
+        {isConnected && (
+          <Dashboard stats={stats} onShare={shareStats} sharing={sharing} />
         )}
 
         <History items={history} you={address} />
