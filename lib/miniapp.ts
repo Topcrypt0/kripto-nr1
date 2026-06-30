@@ -5,7 +5,11 @@
 export function appUrl(): string {
   const explicit = process.env.NEXT_PUBLIC_URL;
   if (explicit) return explicit.replace(/\/+$/, "");
-  // Stable production domain Vercel injects into every environment.
+  // In the browser, the live origin is always correct — so share links work
+  // even when NEXT_PUBLIC_URL isn't set (VERCEL_PROJECT_PRODUCTION_URL is not
+  // exposed client-side).
+  if (typeof window !== "undefined") return window.location.origin;
+  // Server-side: stable production domain Vercel injects into every environment.
   const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL;
   if (vercel) return `https://${vercel}`;
   return "http://localhost:3000";
