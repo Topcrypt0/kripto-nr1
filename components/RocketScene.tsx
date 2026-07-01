@@ -142,6 +142,25 @@ function RocketModel({
   const startMs = useRef(0);
   const exploded = useRef(false);
 
+  // Swept fin blade (radial-vertical profile, extruded thin).
+  const finGeo = useMemo(() => {
+    const s = new THREE.Shape();
+    s.moveTo(0, 0.16);
+    s.lineTo(0.55, -0.5);
+    s.lineTo(0.55, -0.74);
+    s.lineTo(0, -0.6);
+    s.closePath();
+    const g = new THREE.ExtrudeGeometry(s, {
+      depth: 0.06,
+      bevelEnabled: true,
+      bevelThickness: 0.02,
+      bevelSize: 0.02,
+      bevelSegments: 2,
+    });
+    g.translate(0, 0, -0.03);
+    return g;
+  }, []);
+
   const won = phase === "result" && (multiplier ?? 0) > 0;
   const crashed = phase === "result" && multiplier === 0;
   const planet = won ? PLANETS[multiplier as number] : null;
@@ -229,13 +248,13 @@ function RocketModel({
 
   return (
     <group ref={group}>
-      {/* nose */}
-      <mesh position={[0, 1.18, 0]} castShadow>
-        <coneGeometry args={[0.34, 0.85, 40]} />
-        <meshPhysicalMaterial color="#e01b14" metalness={0.5} roughness={0.22} clearcoat={1} clearcoatRoughness={0.12} envMapIntensity={1.4} />
+      {/* nose cone — tall + pointed */}
+      <mesh position={[0, 1.32, 0]} castShadow>
+        <coneGeometry args={[0.34, 1.05, 44]} />
+        <meshPhysicalMaterial color="#e01b14" metalness={0.5} roughness={0.2} clearcoat={1} clearcoatRoughness={0.1} envMapIntensity={1.5} />
       </mesh>
       {/* nose tip cap */}
-      <mesh position={[0, 1.6, 0]}>
+      <mesh position={[0, 1.85, 0]}>
         <sphereGeometry args={[0.05, 16, 16]} />
         <meshStandardMaterial color="#fff" metalness={1} roughness={0.1} />
       </mesh>
@@ -254,28 +273,28 @@ function RocketModel({
         <meshStandardMaterial color="#eef2f8" metalness={1} roughness={0.06} envMapIntensity={1.8} />
       </mesh>
 
-      {/* porthole on +Z face */}
-      <group position={[0, 0.42, 0.33]}>
+      {/* porthole on +Z face — large single window like the logo */}
+      <group position={[0, 0.42, 0.31]}>
         {/* chrome rim */}
         <mesh rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[0.2, 0.045, 20, 40]} />
+          <torusGeometry args={[0.23, 0.05, 20, 44]} />
           <meshStandardMaterial color="#dfe5f0" metalness={1} roughness={0.08} envMapIntensity={1.8} />
         </mesh>
         {/* glass lens */}
         <mesh position={[0, 0, -0.02]}>
-          <sphereGeometry args={[0.18, 32, 32]} />
+          <sphereGeometry args={[0.21, 32, 32]} />
           <meshPhysicalMaterial color="#5bb4ff" emissive="#2e7fff" emissiveIntensity={0.6} metalness={0.3} roughness={0.05} clearcoat={1} transmission={0.2} />
         </mesh>
         {/* highlight */}
-        <mesh position={[-0.06, 0.06, 0.12]}>
-          <sphereGeometry args={[0.04, 12, 12]} />
+        <mesh position={[-0.07, 0.07, 0.14]}>
+          <sphereGeometry args={[0.045, 12, 12]} />
           <meshBasicMaterial color="#ffffff" toneMapped={false} />
         </mesh>
         {/* rivets */}
-        {Array.from({ length: 12 }).map((_, i) => {
-          const a = (i / 12) * Math.PI * 2;
+        {Array.from({ length: 14 }).map((_, i) => {
+          const a = (i / 14) * Math.PI * 2;
           return (
-            <mesh key={i} position={[Math.cos(a) * 0.2, Math.sin(a) * 0.2, 0.02]}>
+            <mesh key={i} position={[Math.cos(a) * 0.23, Math.sin(a) * 0.23, 0.02]}>
               <sphereGeometry args={[0.022, 10, 10]} />
               <meshStandardMaterial color="#cfd6e2" metalness={1} roughness={0.2} />
             </mesh>
@@ -283,12 +302,11 @@ function RocketModel({
         })}
       </group>
 
-      {/* fins */}
-      {[0, 1, 2].map((i) => (
-        <group key={i} rotation={[0, (i * Math.PI * 2) / 3, 0]}>
-          <mesh position={[0.36, -0.5, 0]} rotation={[0, 0, -0.32]} castShadow>
-            <boxGeometry args={[0.06, 0.6, 0.46]} />
-            <meshPhysicalMaterial color="#b00d06" metalness={0.5} roughness={0.3} clearcoat={1} clearcoatRoughness={0.18} envMapIntensity={1.3} />
+      {/* fins — 4 swept blades */}
+      {[0, 1, 2, 3].map((i) => (
+        <group key={i} rotation={[0, (i * Math.PI) / 2, 0]}>
+          <mesh geometry={finGeo} position={[0.26, -0.05, 0]} castShadow>
+            <meshPhysicalMaterial color="#c11810" metalness={0.5} roughness={0.28} clearcoat={1} clearcoatRoughness={0.16} envMapIntensity={1.3} />
           </mesh>
         </group>
       ))}

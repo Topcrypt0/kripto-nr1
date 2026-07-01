@@ -21,18 +21,24 @@ export function cardUrl(p: CardParams): string {
 export type ShareOutcome = "cast" | "web" | "copied" | "failed";
 
 /**
- * Share a card. Prefers a Farcaster/Base App cast (so the image embeds in-feed),
- * falls back to the native Web Share sheet, then to copying the link.
+ * Share a card. Prefers a Farcaster/Base App cast (so the image embeds in-feed
+ * and the referral link is tappable), falls back to the native Web Share sheet,
+ * then to copying. `link` is the referral URL friends should land on.
  */
 export async function shareCard(
-  url: string,
+  cardImageUrl: string,
   text: string,
+  link?: string,
 ): Promise<ShareOutcome> {
+  const embeds = (link ? [cardImageUrl, link] : [cardImageUrl]) as
+    | [string]
+    | [string, string];
+
   try {
     const { sdk } = await import("@farcaster/miniapp-sdk");
     const inMini = await sdk.isInMiniApp().catch(() => false);
     if (inMini) {
-      await sdk.actions.composeCast({ text, embeds: [url] });
+      await sdk.actions.composeCast({ text, embeds });
       return "cast";
     }
   } catch {
@@ -41,7 +47,11 @@ export async function shareCard(
 
   if (typeof navigator !== "undefined" && navigator.share) {
     try {
-      await navigator.share({ title: "KRIPTO NR.1", text, url });
+      await navigator.share({
+        title: "KRIPTO NR.1",
+        text,
+        url: link ?? cardImageUrl,
+      });
       return "web";
     } catch {
       /* user cancelled or unsupported — fall through */
@@ -49,7 +59,7 @@ export async function shareCard(
   }
 
   try {
-    await navigator.clipboard.writeText(`${text} ${url}`);
+    await navigator.clipboard.writeText(`${text} ${link ?? cardImageUrl}`);
     return "copied";
   } catch {
     return "failed";

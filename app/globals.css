@@ -534,3 +534,41 @@ code { background: rgba(255, 255, 255, .1); padding: 1px 5px; border-radius: 5px
 .tileValue.up { color: var(--green); }
 .tileValue.down { color: var(--red); }
 .dashNote { font-size: 11px; color: #8b97c7; font-family: 'JetBrains Mono', monospace; }
+
+/* ---------- free launch (promo bonus spin) ---------- */
+.freeLaunch {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  border-radius: 15px; padding: 14px; font-weight: 700; font-size: 15px;
+  color: #0a1330;
+  background: linear-gradient(180deg, #ffe07a, #f5b50a);
+  box-shadow: 0 8px 22px rgba(245, 181, 10, .35);
+}
+.freeLaunch .freeCount {
+  font-size: 12px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+  background: rgba(10, 19, 48, .18); color: #5a3d02; padding: 3px 9px; border-radius: 999px;
+}
+.freeNote { margin: 0; text-align: center; font-size: 12.5px; color: var(--muted); }
+
+/* ---------- share preview modal ---------- */
+.modalWrap {
+  position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;
+  padding: 20px; background: rgba(4, 6, 15, .72); backdrop-filter: blur(6px);
+  animation: rise .2s ease both;
+}
+.modalCard {
+  width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: 13px;
+  background: linear-gradient(180deg, rgba(20, 28, 58, .96), rgba(12, 18, 42, .96));
+  border: 1px solid rgba(255, 255, 255, .1); border-radius: 22px; padding: 18px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .6);
+}
+.modalTitle { font-size: 12px; font-weight: 700; letter-spacing: 1px; color: #5f6ea3; text-transform: uppercase; }
+.cardPreview {
+  width: 100%; border-radius: 14px; display: block;
+  border: 1px solid rgba(255, 255, 255, .08); box-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+}
+.modalHint { margin: 0; text-align: center; font-size: 13px; color: #cdd6f5; }
+.modalBtns { display: flex; gap: 9px; }
+.modalBtns .btn { flex: 1; padding: 14px; border-radius: 14px; font-size: 15px; font-weight: 700; }
+.ghostBtn {
+  background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .14); color: #eaf0ff;
+}

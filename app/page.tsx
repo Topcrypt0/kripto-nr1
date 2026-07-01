@@ -28,6 +28,13 @@ import {
   mergeGames,
 } from "@/lib/stats";
 import { cardUrl, shareCard } from "@/lib/share";
+import { appUrl } from "@/lib/miniapp";
+import {
+  grantShareReward,
+  initFreeSpins,
+  rollMultiplier,
+  useFreeSpin,
+} from "@/lib/referral";
 import { Rocket } from "@/components/Rocket";
 import { History, type HistoryItem } from "@/components/History";
 import { Dashboard } from "@/components/Dashboard";
@@ -39,6 +46,13 @@ type GameResult = {
   bet: bigint;
   payout: bigint;
   refunded: boolean;
+  free?: boolean;
+};
+
+type PreviewData = {
+  params: Parameters<typeof cardUrl>[0];
+  text: string;
+  link: string;
 };
 
 type ResolvedArgs = {
@@ -73,6 +87,9 @@ export default function Home() {
   const [localPending, setLocalPending] = useState<boolean | null>(null);
   const [sharing, setSharing] = useState(false);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
+  const [freeSpins, setFreeSpins] = useState(0);
+  const [freePlay, setFreePlay] = useState(false);
+  const [preview, setPreview] = useState<PreviewData | null>(null);
 
   const mutedRef = useRef(muted);
   useEffect(() => {
@@ -99,6 +116,7 @@ export default function Home() {
   useEffect(() => {
     setGames(loadGames(address));
     setLocalPending(null);
+    setFreeSpins(initFreeSpins(address));
   }, [address]);
 
   useEffect(() => {
@@ -397,27 +415,44 @@ export default function Home() {
     setError(null);
   }
 
-  async function runShare(
-    params: Parameters<typeof cardUrl>[0],
-    text: string,
-  ) {
-    if (sharing) return;
-    setSharing(true);
-    setShareMsg(null);
-    const outcome = await shareCard(cardUrl(params), text);
-    setSharing(false);
-    setShareMsg(
-      outcome === "cast"
-        ? "Shared to your feed!"
-        : outcome === "web"
-          ? "Shared!"
-          : outcome === "copied"
-            ? "Card link copied!"
-            : "Couldn't share — try again",
-    );
-    window.setTimeout(() => setShareMsg(null), 2600);
+  // A free bonus spin — same odds, full animation, but no on-chain bet and no
+  // real ETH. Purely promotional (see lib/referral.ts).
+  function handleFreeLaunch() {
+    if (freeSpins <= 0 || phase !== "idle") return;
+    setError(null);
+    setResult(null);
+    unlockAudio();
+    if (!muted) playLaunch();
+    setFreePlay(true);
+    setFreeSpins(useFreeSpin());
+    setPhase("revealing");
+
+    const mult = rollMultiplier();
+    window.setTimeout(() => {
+      setResult({
+        multiplier: mult,
+        bet: 0n,
+        payout: 0n,
+        refunded: false,
+        free: true,
+      });
+      setPhase("result");
+      setFreePlay(false);
+
+      const durMs = destMeta(mult).durMs;
+      const delay = mult > 0 ? durMs * 0.85 : durMs * 0.65;
+      window.setTimeout(() => {
+        if (mutedRef.current) return;
+        if (mult > 0) playWin();
+        else playCrash();
+      }, delay);
+    }, 2000);
   }
 
+  const inviteLink = () =>
+    address ? `${appUrl()}/?ref=${address}` : appUrl();
+
+  // Sharing now opens a preview first — you see the card, then choose to share.
   function shareResult() {
     if (!result) return;
     const win = !result.refunded && result.multiplier > 0;
@@ -429,14 +464,16 @@ export default function Home() {
       win,
       big: result.refunded ? "↩︎" : `X${result.multiplier}`,
       pct: result.refunded ? "refunded" : `${pct > 0 ? "+" : ""}${pct}%`,
-      sub: result.refunded
-        ? `bet ${betEth} ETH returned`
-        : `${name} · ${betEth} → ${payEth} ETH`,
+      sub: result.free
+        ? "Free spin — join & play for real"
+        : result.refunded
+          ? `bet ${betEth} ETH returned`
+          : `${name} · ${betEth} → ${payEth} ETH`,
     };
     const text = win
-      ? `🚀 I hit X${result.multiplier} on KRIPTO NR.1 — rocket lottery on Base!`
-      : `💥 KRIPTO NR.1 got me. Revenge launch incoming. Rocket lottery on Base 🚀`;
-    void runShare(params, text);
+      ? `I hit X${result.multiplier} on KRIPTO NR.1 🚀 Join & get 1 free launch — rocket lottery on Base!`
+      : `Launching rockets on KRIPTO NR.1 🚀 Join & get 1 free launch — rocket lottery on Base!`;
+    setPreview({ params, text, link: inviteLink() });
   }
 
   function shareStats() {
@@ -452,10 +489,49 @@ export default function Home() {
         stats.best > 0 ? ` · best X${stats.best}` : ""
       }`,
     };
-    const text = up
-      ? `📈 ${params.pct} on KRIPTO NR.1 — rocket lottery on Base 🚀`
-      : `Grinding KRIPTO NR.1 on Base. ${stats.count + stats.refunds} launches in 🚀`;
-    void runShare(params, text);
+    const text = `My KRIPTO NR.1 run: ${params.big} PnL 🚀 Join & get 1 free launch — rocket lottery on Base!`;
+    setPreview({ params, text, link: inviteLink() });
+  }
+
+  async function doShare() {
+    if (!preview || sharing) return;
+    setSharing(true);
+    const outcome = await shareCard(
+      cardUrl(preview.params),
+      preview.text,
+      preview.link,
+    );
+    setSharing(false);
+    setPreview(null);
+
+    let msg =
+      outcome === "cast"
+        ? "Shared to your feed!"
+        : outcome === "web"
+          ? "Shared!"
+          : outcome === "copied"
+            ? "Invite link copied!"
+            : "Couldn't share — try again";
+    if (outcome !== "failed") {
+      const { spins, granted } = grantShareReward();
+      if (granted) {
+        setFreeSpins(spins);
+        msg += " +1 free launch 🎁";
+      }
+    }
+    setShareMsg(msg);
+    window.setTimeout(() => setShareMsg(null), 3200);
+  }
+
+  function copyInvite() {
+    if (!preview) return;
+    try {
+      void navigator.clipboard.writeText(preview.link);
+      setShareMsg("Invite link copied!");
+      window.setTimeout(() => setShareMsg(null), 2500);
+    } catch {
+      /* ignore */
+    }
   }
 
   const rocketPhase =
@@ -528,7 +604,57 @@ export default function Home() {
           )}
         </div>
 
-        {!isConnected ? (
+        {freeSpins > 0 && phase === "idle" && !hasPending && (
+          <button className="btn freeLaunch" onClick={handleFreeLaunch}>
+            🎁 Free launch
+            <span className="freeCount">{freeSpins} left</span>
+          </button>
+        )}
+
+        {phase === "result" && result ? (
+          <div className="resultBox">
+            {result.free ? (
+              result.multiplier > 0 ? (
+                <p className="win">
+                  🎁 Free spin — X{result.multiplier}! (bonus, no ETH)
+                </p>
+              ) : (
+                <p className="lose">🎁 Free spin — X0. Try again!</p>
+              )
+            ) : result.refunded ? (
+              <p className="lose">
+                ↩️ Refunded — revealed too late, bet returned.
+              </p>
+            ) : result.multiplier === 0 ? (
+              <p className="lose">💥 Rocket failed — X0. Try again!</p>
+            ) : (
+              <p className="win">
+                🎉 X{result.multiplier}! Paid{" "}
+                {Number(formatEther(result.payout)).toFixed(4)} ETH
+              </p>
+            )}
+            {result.free && result.multiplier > 0 && (
+              <p className="freeNote">Play for real to win actual ETH 🚀</p>
+            )}
+            <div className="resultBtns">
+              <button className="btn launchAgain" onClick={reset}>
+                Launch again
+              </button>
+              <button className="btn shareBtn" onClick={shareResult}>
+                ↗ Share card
+              </button>
+            </div>
+          </div>
+        ) : busy ? (
+          <button className="btn launch busy" disabled>
+            <span className="spinner" />
+            {freePlay
+              ? "Launching…"
+              : phase === "committing"
+                ? "Launching… (1/2)"
+                : "Revealing… (2/2)"}
+          </button>
+        ) : !isConnected ? (
           <div className="connectRow">
             {connectors.map((c) => (
               <button
@@ -547,38 +673,6 @@ export default function Home() {
             onClick={() => switchChain({ chainId: activeChain.id })}
           >
             Switch to {activeChain.name}
-          </button>
-        ) : phase === "result" && result ? (
-          <div className="resultBox">
-            {result.refunded ? (
-              <p className="lose">
-                ↩️ Refunded — revealed too late, bet returned.
-              </p>
-            ) : result.multiplier === 0 ? (
-              <p className="lose">💥 Rocket failed — X0. Try again!</p>
-            ) : (
-              <p className="win">
-                🎉 X{result.multiplier}! Paid{" "}
-                {Number(formatEther(result.payout)).toFixed(4)} ETH
-              </p>
-            )}
-            <div className="resultBtns">
-              <button className="btn launchAgain" onClick={reset}>
-                Launch again
-              </button>
-              <button
-                className="btn shareBtn"
-                onClick={shareResult}
-                disabled={sharing}
-              >
-                {sharing ? "…" : "↗ Share card"}
-              </button>
-            </div>
-          </div>
-        ) : busy ? (
-          <button className="btn launch busy" disabled>
-            <span className="spinner" />
-            {phase === "committing" ? "Launching… (1/2)" : "Revealing… (2/2)"}
           </button>
         ) : hasPending ? (
           <button className="btn launch" onClick={handleReveal}>
@@ -651,6 +745,41 @@ export default function Home() {
           Min {MIN_BET} – Max {MAX_BET} ETH
         </span>
       </footer>
+
+      {preview && (
+        <div className="modalWrap" onClick={() => setPreview(null)}>
+          <div className="modalCard" onClick={(e) => e.stopPropagation()}>
+            <div className="modalTitle">Your share card</div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              className="cardPreview"
+              src={cardUrl(preview.params)}
+              alt="Share card preview"
+            />
+            <p className="modalHint">
+              Friends who join from your link get 1 free launch 🎁
+            </p>
+            <div className="modalBtns">
+              <button
+                className="btn primary"
+                onClick={doShare}
+                disabled={sharing}
+              >
+                {sharing ? "Sharing…" : "↗ Share"}
+              </button>
+              <button className="btn ghostBtn" onClick={copyInvite}>
+                Copy link
+              </button>
+              <button
+                className="btn ghostBtn"
+                onClick={() => setPreview(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
