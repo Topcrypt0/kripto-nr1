@@ -96,6 +96,30 @@ export default function Home() {
     mutedRef.current = muted;
   }, [muted]);
 
+  // The Farcaster Mini App connector powers silent auto-connect inside Base App,
+  // but we don't want it as a visible "Connect Farcaster" button on the web.
+  const isFarcaster = (c: { id: string; name: string }) =>
+    /farcaster/i.test(c.id) || /farcaster/i.test(c.name);
+  const visibleConnectors = connectors.filter((c) => !isFarcaster(c));
+
+  // Auto-connect the host wallet when running inside Base App / a Mini App host.
+  const autoConnected = useRef(false);
+  useEffect(() => {
+    if (autoConnected.current || isConnected) return;
+    autoConnected.current = true;
+    (async () => {
+      try {
+        const { sdk } = await import("@farcaster/miniapp-sdk");
+        if (!(await sdk.isInMiniApp().catch(() => false))) return;
+        const fc = connectors.find((c) => isFarcaster(c));
+        if (fc) connect({ connector: fc });
+      } catch {
+        /* not in a Mini App host */
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected, connectors]);
+
   const wrongChain = isConnected && chainId !== activeChain.id;
   const contractConfigured =
     CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000";
@@ -656,7 +680,7 @@ export default function Home() {
           </button>
         ) : !isConnected ? (
           <div className="connectRow">
-            {connectors.map((c) => (
+            {visibleConnectors.map((c) => (
               <button
                 key={c.uid}
                 className="btn primary"

@@ -151,7 +151,7 @@ export async function GET(req: Request) {
             boxShadow: "0 0 60px rgba(255,74,44,0.45)",
           }}
         >
-          JOIN &amp; GET 1 FREE LAUNCH
+          PLAY &amp; WIN UP TO X10
         </div>
 
         {/* footer */}

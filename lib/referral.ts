@@ -9,10 +9,10 @@ const STARTED_KEY = "kr1_started"; // starter grant given
 const INVITED_KEY = "kr1_invited"; // invite bonus given
 const EARNED_KEY = "kr1_share_earned"; // spins earned by sharing (capped)
 
-const STARTER = 1; // brand-new device
-const INVITE_BONUS = 1; // arriving via a ref link
+const STARTER = 3; // brand-new device
+const INVITE_BONUS = 2; // arriving via a ref link
 const SHARE_BONUS = 1; // per share
-const SHARE_CAP = 5; // max spins earnable via sharing
+const SHARE_CAP = 10; // max spins earnable via sharing
 
 const isAddr = (s: string) => /^0x[a-fA-F0-9]{40}$/.test(s);
 
