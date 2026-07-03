@@ -1,14 +1,29 @@
 import { ImageResponse } from "next/og";
+import { appUrl } from "@/lib/miniapp";
 
 export const runtime = "edge";
 export const dynamic = "force-dynamic";
 
 // Serve the font from our own /public so rendering needs no external network
 // (next/og's default font is fetched from a remote CDN, which is slow/fragile).
-async function loadFont(origin: string) {
+// Prefer the env-configured origin over the request URL so a spoofed Host
+// header can't point the fetch at another server.
+async function loadFont(reqUrl: string) {
+  const configured = appUrl();
+  const origin = configured.includes("localhost")
+    ? new URL(reqUrl).origin
+    : configured;
   const res = await fetch(new URL("/NotoSans.ttf", origin));
   return res.arrayBuffer();
 }
+
+// Card text is attacker-controlled query input; strip control characters and
+// bidi/invisible marks so the generator can't be abused for spoofed content.
+const clean = (s: string, max: number) =>
+  s
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, "")
+    .slice(0, max);
 
 // Rocket badge (the app logo) inlined as an SVG data-URI so it renders with no
 // network fetch. Matches public/logo.svg.
@@ -22,9 +37,9 @@ export async function GET(req: Request) {
   const fontData = await loadFont(req.url);
   const { searchParams } = new URL(req.url);
   const win = searchParams.get("win") === "1";
-  const big = (searchParams.get("big") ?? "X0").slice(0, 12);
-  const pct = (searchParams.get("pct") ?? "").slice(0, 16);
-  const sub = (searchParams.get("sub") ?? "").slice(0, 80);
+  const big = clean(searchParams.get("big") ?? "X0", 12);
+  const pct = clean(searchParams.get("pct") ?? "", 16);
+  const sub = clean(searchParams.get("sub") ?? "", 80);
 
   const accent = win ? "#2fe08a" : "#ff5a4d";
   const glow = win ? "rgba(47,224,138,0.5)" : "rgba(255,90,77,0.45)";
@@ -177,6 +192,11 @@ export async function GET(req: Request) {
       fonts: [
         { name: "Noto Sans", data: fontData, weight: 400, style: "normal" },
       ],
+      headers: {
+        // Output depends only on the query string — cache hard at the CDN so
+        // repeated/spammed requests don't re-render (cost/DoS control).
+        "Cache-Control": "public, max-age=3600, s-maxage=86400, immutable",
+      },
     },
   );
 }

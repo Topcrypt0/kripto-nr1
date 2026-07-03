@@ -2,6 +2,7 @@
 
 import { formatEther } from "viem";
 import { destMeta } from "@/lib/destinations";
+import { usdFromWei } from "@/lib/price";
 
 export type HistoryItem = {
   txHash: string;
@@ -13,9 +14,11 @@ export type HistoryItem = {
 export function History({
   items,
   you,
+  ethUsd,
 }: {
   items: HistoryItem[];
   you?: string;
+  ethUsd: number;
 }) {
   if (!items.length) return null;
 
@@ -27,7 +30,8 @@ export function History({
           const m = destMeta(it.multiplier);
           const win = it.multiplier > 0;
           const isYou = you && it.player.toLowerCase() === you.toLowerCase();
-          const payout = Number(formatEther(BigInt(it.payoutWei)));
+          const payoutWei = BigInt(it.payoutWei);
+          const payout = Number(formatEther(payoutWei));
           return (
             <li key={it.txHash}>
               <span className="hAddr">
@@ -37,7 +41,9 @@ export function History({
                 {win ? `${m.emoji} ${m.name}` : "💥 crashed"}
               </span>
               <span className={`hMult ${win ? "w" : "l"}`}>
-                {win ? `+${payout.toFixed(4)}` : "X0"}
+                {win
+                  ? `+${payout.toFixed(4)} (${usdFromWei(payoutWei, ethUsd)})`
+                  : "X0"}
               </span>
             </li>
           );

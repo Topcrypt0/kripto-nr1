@@ -13,10 +13,13 @@ import {
 } from "wagmi";
 import {
   CONTRACT_ADDRESS,
+  FREE_BET,
   MAX_BET,
+  MAX_WIN,
   MIN_BET,
   kriptoNr1Abi,
 } from "@/lib/contract";
+import { useEthUsd, usdFromEth, usdFromWei } from "@/lib/price";
 import { DATA_SUFFIX, activeChain } from "@/lib/wagmi";
 import { destMeta } from "@/lib/destinations";
 import { playCrash, playLaunch, playWin, unlockAudio } from "@/lib/sound";
@@ -29,23 +32,24 @@ import {
 } from "@/lib/stats";
 import { cardUrl, shareCard } from "@/lib/share";
 import { appUrl } from "@/lib/miniapp";
-import {
-  grantShareReward,
-  initFreeSpins,
-  rollMultiplier,
-  useFreeSpin,
-} from "@/lib/referral";
+import { captureReferrer, getReferrer } from "@/lib/referral";
 import { Rocket } from "@/components/Rocket";
 import { History, type HistoryItem } from "@/components/History";
 import { Dashboard } from "@/components/Dashboard";
 
-type Phase = "idle" | "committing" | "revealing" | "result";
+type Phase =
+  | "idle"
+  | "committing" // launch() tx in flight
+  | "revealing" // waiting for the reveal block + reading preview()
+  | "won" // preview says you won — Claim button shown
+  | "claiming" // claim() tx in flight
+  | "result"; // final: loss, or a claimed win
 
 type GameResult = {
   multiplier: number;
   bet: bigint;
   payout: bigint;
-  refunded: boolean;
+  expired?: boolean;
   free?: boolean;
 };
 
@@ -55,12 +59,11 @@ type PreviewData = {
   link: string;
 };
 
-type ResolvedArgs = {
+type SettledArgs = {
   bet: bigint;
   multiplier: bigint;
   payout: bigint;
   roll: bigint;
-  refunded: boolean;
 };
 
 const PRESETS = ["0.0001", "0.0002", "0.0005", "0.001"];
@@ -72,7 +75,7 @@ export default function Home() {
   const { disconnect } = useDisconnect();
   const { switchChain } = useSwitchChain();
   const { writeContractAsync } = useWriteContract();
-  const publicClient = usePublicClient();
+  const publicClient = usePublicClient({ chainId: activeChain.id });
 
   const [bet, setBet] = useState<string>("0.0001");
   const [phase, setPhase] = useState<Phase>("idle");
@@ -87,9 +90,9 @@ export default function Home() {
   const [localPending, setLocalPending] = useState<boolean | null>(null);
   const [sharing, setSharing] = useState(false);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
-  const [freeSpins, setFreeSpins] = useState(0);
   const [freePlay, setFreePlay] = useState(false);
   const [preview, setPreview] = useState<PreviewData | null>(null);
+  const ethUsd = useEthUsd();
 
   const mutedRef = useRef(muted);
   useEffect(() => {
@@ -140,7 +143,7 @@ export default function Home() {
   useEffect(() => {
     setGames(loadGames(address));
     setLocalPending(null);
-    setFreeSpins(initFreeSpins(address));
+    captureReferrer(address);
   }, [address]);
 
   useEffect(() => {
@@ -154,6 +157,7 @@ export default function Home() {
   const { data: bankroll } = useReadContract({
     address: CONTRACT_ADDRESS,
     abi: kriptoNr1Abi,
+    chainId: activeChain.id,
     functionName: "bankroll",
     query: { refetchInterval: 15_000, enabled: contractConfigured },
   });
@@ -161,10 +165,33 @@ export default function Home() {
   const { data: pendingGame, refetch: refetchGames } = useReadContract({
     address: CONTRACT_ADDRESS,
     abi: kriptoNr1Abi,
+    chainId: activeChain.id,
     functionName: "games",
     args: address ? [address] : undefined,
     query: { enabled: contractConfigured && !!address, refetchInterval: 12_000 },
   });
+
+  // On-chain free launches: starter + earned invite credits (contract v3).
+  const { data: freeLaunchCount, refetch: refetchFree } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: kriptoNr1Abi,
+    chainId: activeChain.id,
+    functionName: "freeLaunches",
+    args: address ? [address] : undefined,
+    query: { enabled: contractConfigured && !!address, refetchInterval: 30_000 },
+  });
+  const { data: promoPool } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: kriptoNr1Abi,
+    chainId: activeChain.id,
+    functionName: "promoPool",
+    query: { enabled: contractConfigured, refetchInterval: 30_000 },
+  });
+  // Free launches are on only when the promo pool can cover a worst-case X10.
+  const freeSpins =
+    promoPool !== undefined && promoPool >= parseEther(FREE_BET) * 10n
+      ? Number(freeLaunchCount ?? 0n)
+      : 0;
 
   // games() returns [bet, targetBlock, active]. Local flow wins when it has an
   // opinion; otherwise fall back to the chain read (recovery after a reload).
@@ -179,7 +206,7 @@ export default function Home() {
       const logs = await publicClient.getContractEvents({
         address: CONTRACT_ADDRESS,
         abi: kriptoNr1Abi,
-        eventName: "Resolved",
+        eventName: "Settled",
         fromBlock,
         toBlock: "latest",
       });
@@ -220,13 +247,13 @@ export default function Home() {
               address.toLowerCase(),
           )
           .map((l) => {
-            const a = l.args as unknown as ResolvedArgs;
+            const a = l.args as unknown as SettledArgs;
             return {
               txHash: l.transactionHash ?? "",
               betWei: (a.bet ?? 0n).toString(),
               multiplier: Number(a.multiplier),
               payoutWei: (a.payout ?? 0n).toString(),
-              refunded: Boolean(a.refunded),
+              refunded: false,
               ts: Number(l.blockNumber ?? 0n),
             };
           });
@@ -260,112 +287,37 @@ export default function Home() {
     });
   }
 
-  async function waitForBlock(target: bigint) {
-    if (!publicClient) return;
-    for (let i = 0; i < 40; i++) {
-      const bn = await publicClient.getBlockNumber();
-      if (bn > target) return;
+  // Poll preview(you) until the reveal block exists; returns the outcome.
+  async function pollPreview(): Promise<{ multiplier: number; payout: bigint }> {
+    if (!publicClient || !address) throw new Error("Wallet not ready");
+    for (let i = 0; i < 80; i++) {
+      const [ready, mult, payout] = (await publicClient.readContract({
+        address: CONTRACT_ADDRESS,
+        abi: kriptoNr1Abi,
+        functionName: "preview",
+        args: [address],
+      })) as readonly [boolean, bigint, bigint];
+      if (ready) return { multiplier: Number(mult), payout };
       await new Promise((r) => setTimeout(r, 1500));
     }
-    throw new Error("Timed out waiting for the reveal block — try Reveal again.");
+    throw new Error("Timed out waiting for the reveal block — tap Check result.");
   }
 
-  // Step 2: reveal + pay. targetBlock is read from chain if not provided.
-  async function resolveGame(targetBlock?: bigint, betWei?: bigint) {
-    if (!publicClient || !address) return;
-    setPhase("revealing");
-
-    let target = targetBlock;
-    let stake = betWei;
-    if (target === undefined) {
-      const g = (await publicClient.readContract({
-        address: CONTRACT_ADDRESS,
-        abi: kriptoNr1Abi,
-        functionName: "games",
-        args: [address],
-      })) as readonly [bigint, bigint, boolean];
-      if (!g[2]) {
-        // Nothing pending on-chain — clear local flag and bail to idle.
-        setLocalPending(false);
-        setPhase("idle");
-        return;
-      }
-      stake = g[0];
-      target = g[1];
-    }
-
-    await waitForBlock(target);
-
-    const hash = await writeContractAsync({
+  // Read the pending game from chain (loss record + display + free flag).
+  async function pendingStake(): Promise<{ stake: bigint; free: boolean }> {
+    if (!publicClient || !address) return { stake: 0n, free: false };
+    const g = (await publicClient.readContract({
       address: CONTRACT_ADDRESS,
       abi: kriptoNr1Abi,
-      functionName: "resolve",
+      functionName: "games",
       args: [address],
-      dataSuffix: DATA_SUFFIX,
-    });
-    const receipt = await publicClient.waitForTransactionReceipt({ hash });
-    if (receipt.status === "reverted") {
-      throw new Error("Reveal reverted on-chain — try Reveal again.");
-    }
+    })) as readonly [bigint, bigint, boolean, boolean];
+    return g[2]
+      ? { stake: g[0], free: g[3] === true }
+      : { stake: 0n, free: false };
+  }
 
-    let ev = parseEventLogs({
-      abi: kriptoNr1Abi,
-      eventName: "Resolved",
-      logs: receipt.logs,
-    })[0]?.args as ResolvedArgs | undefined;
-
-    if (!ev) {
-      const refetched = await publicClient.getContractEvents({
-        address: CONTRACT_ADDRESS,
-        abi: kriptoNr1Abi,
-        eventName: "Resolved",
-        blockHash: receipt.blockHash,
-      });
-      ev = refetched.find((l) => l.transactionHash === hash)?.args as
-        | ResolvedArgs
-        | undefined;
-    }
-    if (!ev) {
-      throw new Error("Couldn't read the result (RPC hiccup) — check history.");
-    }
-
-    const mult = Number(ev.multiplier);
-    const stakeWei = ev.bet ?? stake ?? 0n;
-    setResult({
-      multiplier: mult,
-      bet: stakeWei,
-      payout: ev.payout,
-      refunded: ev.refunded,
-    });
-    setPhase("result");
-    // The game is settled on-chain — let the player relaunch immediately.
-    setLocalPending(false);
-
-    setHistory((prev) =>
-      [
-        {
-          txHash: hash,
-          player: address,
-          multiplier: mult,
-          payoutWei: ev!.payout.toString(),
-        },
-        ...prev.filter((p) => p.txHash !== hash),
-      ].slice(0, 10),
-    );
-
-    setGames(
-      mergeGames(address, [
-        {
-          txHash: hash,
-          betWei: stakeWei.toString(),
-          multiplier: mult,
-          payoutWei: ev.payout.toString(),
-          refunded: ev.refunded,
-          ts: Date.now(),
-        },
-      ]),
-    );
-
+  function playOutcomeSound(mult: number) {
     const durMs = destMeta(mult).durMs;
     const delay = mult > 0 ? durMs * 0.85 : durMs * 0.65;
     window.setTimeout(() => {
@@ -373,12 +325,48 @@ export default function Home() {
       if (mult > 0) playWin();
       else playCrash();
     }, delay);
-
-    void refetchGames();
-    window.setTimeout(fetchHistory, 4000);
   }
 
-  // Step 1: commit the bet, then auto-reveal.
+  // A settled loss is only ever known locally (the loser never sends a tx), so
+  // record it in the ledger here for accurate PnL. Keyed by the launch tx hash.
+  function recordLoss(launchHash: string, stakeWei: bigint) {
+    if (!address) return;
+    setGames(
+      mergeGames(address, [
+        {
+          txHash: launchHash,
+          betWei: stakeWei.toString(),
+          multiplier: 0,
+          payoutWei: "0",
+          refunded: false,
+          ts: Date.now(),
+        },
+      ]),
+    );
+  }
+
+  // After the reveal block: a win parks in "won" (Claim button); a loss/expiry
+  // needs no transaction and settles straight to the result screen.
+  async function revealOutcome(launchHash?: string) {
+    const { multiplier, payout } = await pollPreview();
+    const { stake, free } = await pendingStake();
+    setFreePlay(free);
+    if (multiplier > 0) {
+      setResult({ multiplier, bet: stake, payout, free });
+      setPhase("won");
+      if (!mutedRef.current) playWin();
+    } else {
+      setResult({ multiplier: 0, bet: stake, payout: 0n, free });
+      setPhase("result");
+      setLocalPending(false);
+      // A free-game loss costs the player nothing — record a 0 stake.
+      if (launchHash) recordLoss(launchHash, free ? 0n : stake);
+      playOutcomeSound(0);
+      void refetchGames();
+    }
+  }
+
+  // Step 1: place the bet (single transaction), then reveal the outcome.
   async function handleLaunch() {
     setError(null);
     setResult(null);
@@ -409,10 +397,10 @@ export default function Home() {
       if (receipt.status === "reverted") {
         throw new Error("Launch reverted on-chain — please try again.");
       }
-      // Bet is committed — there's now a pending game until we reveal it.
       setLocalPending(true);
       void refetchGames();
-      await resolveGame(receipt.blockNumber + 1n, stake);
+      setPhase("revealing");
+      await revealOutcome(hash);
     } catch (e: unknown) {
       const msg =
         e instanceof Error ? e.message : "Transaction failed or rejected";
@@ -421,15 +409,106 @@ export default function Home() {
     }
   }
 
-  async function handleReveal() {
+  // Recover a pending game after a reload / re-open (reads preview, no tx).
+  async function handleCheck() {
     setError(null);
     setResult(null);
     try {
-      await resolveGame();
+      setPhase("revealing");
+      await revealOutcome();
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Reveal failed or rejected";
+      const msg = e instanceof Error ? e.message : "Couldn't read the result";
       setError(msg.split("\n")[0].slice(0, 160));
       setPhase("idle");
+    }
+  }
+
+  // Step 2 (wins only): claim the payout.
+  async function handleClaim() {
+    if (!publicClient || !address) return;
+    setError(null);
+    try {
+      setPhase("claiming");
+      const hash = await writeContractAsync({
+        address: CONTRACT_ADDRESS,
+        abi: kriptoNr1Abi,
+        functionName: "claim",
+        dataSuffix: DATA_SUFFIX,
+      });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      if (receipt.status === "reverted") {
+        throw new Error("Claim reverted on-chain — try again.");
+      }
+
+      const ev = parseEventLogs({
+        abi: kriptoNr1Abi,
+        eventName: "Settled",
+        logs: receipt.logs,
+      })[0]?.args as SettledArgs | undefined;
+
+      if (!ev) {
+        // Claimed after the 256-block window — the bet expired (forfeited).
+        const exp = parseEventLogs({
+          abi: kriptoNr1Abi,
+          eventName: "Expired",
+          logs: receipt.logs,
+        })[0]?.args as { bet: bigint } | undefined;
+        setResult({
+          multiplier: 0,
+          bet: exp?.bet ?? result?.bet ?? 0n,
+          payout: 0n,
+          expired: true,
+        });
+        setPhase("result");
+        setLocalPending(false);
+        void refetchGames();
+        return;
+      }
+
+      const mult = Number(ev.multiplier);
+      const wasFree = result?.free ?? freePlay;
+      setResult({
+        multiplier: mult,
+        bet: ev.bet,
+        payout: ev.payout,
+        free: wasFree,
+      });
+      setPhase("result");
+      setLocalPending(false);
+      setFreePlay(false);
+
+      setHistory((prev) =>
+        [
+          {
+            txHash: hash,
+            player: address,
+            multiplier: mult,
+            payoutWei: ev.payout.toString(),
+          },
+          ...prev.filter((p) => p.txHash !== hash),
+        ].slice(0, 10),
+      );
+      setGames(
+        mergeGames(address, [
+          {
+            txHash: hash,
+            // A free game costs the player nothing — its win is pure profit.
+            betWei: wasFree ? "0" : ev.bet.toString(),
+            multiplier: mult,
+            payoutWei: ev.payout.toString(),
+            refunded: false,
+            ts: Date.now(),
+          },
+        ]),
+      );
+
+      void refetchGames();
+      window.setTimeout(fetchHistory, 4000);
+    } catch (e: unknown) {
+      // Leave the game in "won" so the player can retry the claim.
+      const msg = e instanceof Error ? e.message : "Claim failed or rejected";
+      setError(msg.split("\n")[0].slice(0, 160));
+      setPhase("won");
     }
   }
 
@@ -439,64 +518,79 @@ export default function Home() {
     setError(null);
   }
 
-  // A free bonus spin — same odds, full animation, but no on-chain bet and no
-  // real ETH. Purely promotional (see lib/referral.ts).
-  function handleFreeLaunch() {
+  // A REAL free launch (contract v3): zero stake, real odds, real ETH payout
+  // (up to 0.01 at X10), funded by the promo pool. Same preview/claim flow as
+  // a paid launch — costs the player only gas.
+  async function handleFreeLaunch() {
     if (freeSpins <= 0 || phase !== "idle") return;
+    if (!publicClient || !address) return;
     setError(null);
     setResult(null);
     unlockAudio();
     if (!muted) playLaunch();
-    setFreePlay(true);
-    setFreeSpins(useFreeSpin());
-    setPhase("revealing");
 
-    const mult = rollMultiplier();
-    window.setTimeout(() => {
-      setResult({
-        multiplier: mult,
-        bet: 0n,
-        payout: 0n,
-        refunded: false,
-        free: true,
+    try {
+      setPhase("committing");
+      setFreePlay(true);
+      const inviter =
+        (getReferrer() as `0x${string}` | null) ??
+        "0x0000000000000000000000000000000000000000";
+      const hash = await writeContractAsync({
+        address: CONTRACT_ADDRESS,
+        abi: kriptoNr1Abi,
+        functionName: "freeLaunch",
+        args: [inviter],
+        dataSuffix: DATA_SUFFIX,
       });
-      setPhase("result");
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      if (receipt.status === "reverted") {
+        throw new Error("Free launch reverted on-chain — please try again.");
+      }
+      setLocalPending(true);
+      void refetchGames();
+      void refetchFree();
+      setPhase("revealing");
+      await revealOutcome(hash);
+    } catch (e: unknown) {
       setFreePlay(false);
-
-      const durMs = destMeta(mult).durMs;
-      const delay = mult > 0 ? durMs * 0.85 : durMs * 0.65;
-      window.setTimeout(() => {
-        if (mutedRef.current) return;
-        if (mult > 0) playWin();
-        else playCrash();
-      }, delay);
-    }, 2000);
+      const msg =
+        e instanceof Error ? e.message : "Transaction failed or rejected";
+      setError(msg.split("\n")[0].slice(0, 160));
+      setPhase("idle");
+    }
   }
 
   const inviteLink = () =>
     address ? `${appUrl()}/?ref=${address}` : appUrl();
 
+  // "win up to 0.01 ETH (~$16)" — the referral hook, always at the live price.
+  const maxWinUsd = usdFromEth(Number(MAX_WIN), ethUsd);
+  const inviteHook = `Join & get a FREE rocket launch — win up to ${MAX_WIN} ETH (~${maxWinUsd}) at X10, zero risk!`;
+
   // Sharing now opens a preview first — you see the card, then choose to share.
   function shareResult() {
     if (!result) return;
-    const win = !result.refunded && result.multiplier > 0;
-    const pct = gamePct(result.multiplier, result.refunded);
+    const win = !result.expired && result.multiplier > 0;
+    const pct = gamePct(result.multiplier, false);
     const betEth = Number(formatEther(result.bet)).toFixed(4);
     const payEth = Number(formatEther(result.payout)).toFixed(4);
+    const payUsd = usdFromWei(result.payout, ethUsd);
     const name = destMeta(result.multiplier).name;
     const params = {
       win,
-      big: result.refunded ? "↩︎" : `X${result.multiplier}`,
-      pct: result.refunded ? "refunded" : `${pct > 0 ? "+" : ""}${pct}%`,
+      big: result.expired ? "⌛" : `X${result.multiplier}`,
+      pct: result.expired ? "expired" : `${pct > 0 ? "+" : ""}${pct}%`,
       sub: result.free
-        ? "Free spin — join & play for real"
-        : result.refunded
-          ? `bet ${betEth} ETH returned`
-          : `${name} · ${betEth} → ${payEth} ETH`,
+        ? win
+          ? `FREE launch won ${payEth} ETH (${payUsd}) — yours is waiting`
+          : `FREE launch, zero risk — get yours: up to ${MAX_WIN} ETH (~${maxWinUsd})`
+        : result.expired
+          ? `bet ${betEth} ETH expired`
+          : `${name} · ${betEth} → ${payEth} ETH (${payUsd})`,
     };
     const text = win
-      ? `I hit X${result.multiplier} on KRIPTO NR.1 🚀 Join & get 1 free launch — rocket lottery on Base!`
-      : `Launching rockets on KRIPTO NR.1 🚀 Join & get 1 free launch — rocket lottery on Base!`;
+      ? `I hit X${result.multiplier} on KRIPTO NR.1 🚀 ${inviteHook}`
+      : `Launching rockets on KRIPTO NR.1 🚀 ${inviteHook}`;
     setPreview({ params, text, link: inviteLink() });
   }
 
@@ -505,15 +599,16 @@ export default function Home() {
     const pnlEth = Number(
       formatEther(stats.pnl < 0n ? -stats.pnl : stats.pnl),
     ).toFixed(4);
+    const pnlUsd = usdFromWei(stats.pnl < 0n ? -stats.pnl : stats.pnl, ethUsd);
     const params = {
       win: up,
       big: `${stats.pnlPct >= 0 ? "+" : "−"}${Math.abs(stats.pnlPct).toFixed(0)}%`,
-      pct: `${up ? "+" : "−"}${pnlEth} ETH`,
+      pct: `${up ? "+" : "−"}${pnlEth} ETH (${pnlUsd})`,
       sub: `${stats.count + stats.refunds} launches · ${stats.winRate.toFixed(0)}% win${
         stats.best > 0 ? ` · best X${stats.best}` : ""
       }`,
     };
-    const text = `My KRIPTO NR.1 run: ${params.big} PnL 🚀 Join & get 1 free launch — rocket lottery on Base!`;
+    const text = `My KRIPTO NR.1 run: ${params.big} PnL 🚀 ${inviteHook}`;
     setPreview({ params, text, link: inviteLink() });
   }
 
@@ -528,21 +623,14 @@ export default function Home() {
     setSharing(false);
     setPreview(null);
 
-    let msg =
+    const msg =
       outcome === "cast"
-        ? "Shared to your feed!"
+        ? "Shared to your feed! You earn +1 free launch when a friend uses theirs 🎁"
         : outcome === "web"
           ? "Shared!"
           : outcome === "copied"
             ? "Invite link copied!"
             : "Couldn't share — try again";
-    if (outcome !== "failed") {
-      const { spins, granted } = grantShareReward();
-      if (granted) {
-        setFreeSpins(spins);
-        msg += " +1 free launch 🎁";
-      }
-    }
     setShareMsg(msg);
     window.setTimeout(() => setShareMsg(null), 3200);
   }
@@ -559,13 +647,14 @@ export default function Home() {
   }
 
   const rocketPhase =
-    phase === "committing" || phase === "revealing"
+    phase === "committing" || phase === "revealing" || phase === "claiming"
       ? "launching"
-      : phase === "result"
+      : phase === "won" || phase === "result"
         ? "result"
         : "idle";
 
-  const busy = phase === "committing" || phase === "revealing";
+  const busy =
+    phase === "committing" || phase === "revealing" || phase === "claiming";
 
   return (
     <main className="wrap">
@@ -622,43 +711,52 @@ export default function Home() {
             <span>
               Bankroll{" "}
               <b className="mono">
-                {Number(formatEther(bankroll)).toFixed(4)} ETH
+                {Number(formatEther(bankroll)).toFixed(4)} ETH (
+                {usdFromWei(bankroll, ethUsd)})
               </b>
             </span>
           )}
         </div>
 
-        {freeSpins > 0 && phase === "idle" && !hasPending && (
-          <button className="btn freeLaunch" onClick={handleFreeLaunch}>
-            🎁 Free launch
-            <span className="freeCount">{freeSpins} left</span>
-          </button>
-        )}
+        {isConnected && !wrongChain && freeSpins > 0 && phase === "idle" &&
+          !hasPending && (
+            <button className="btn freeLaunch" onClick={handleFreeLaunch}>
+              🎁 FREE launch — win up to {MAX_WIN} ETH (~{maxWinUsd}), zero risk
+              <span className="freeCount">{freeSpins} left</span>
+            </button>
+          )}
 
         {phase === "result" && result ? (
           <div className="resultBox">
             {result.free ? (
               result.multiplier > 0 ? (
                 <p className="win">
-                  🎁 Free spin — X{result.multiplier}! (bonus, no ETH)
+                  🎁 FREE launch won X{result.multiplier} — paid{" "}
+                  {Number(formatEther(result.payout)).toFixed(4)} ETH (
+                  {usdFromWei(result.payout, ethUsd)}), real ETH!
                 </p>
               ) : (
-                <p className="lose">🎁 Free spin — X0. Try again!</p>
+                <p className="lose">
+                  🎁 Free launch — X0. It cost you nothing, try again!
+                </p>
               )
-            ) : result.refunded ? (
+            ) : result.expired ? (
               <p className="lose">
-                ↩️ Refunded — revealed too late, bet returned.
+                ⌛ Expired — claimed after the ~8 min window, bet forfeited.
               </p>
             ) : result.multiplier === 0 ? (
               <p className="lose">💥 Rocket failed — X0. Try again!</p>
             ) : (
               <p className="win">
                 🎉 X{result.multiplier}! Paid{" "}
-                {Number(formatEther(result.payout)).toFixed(4)} ETH
+                {Number(formatEther(result.payout)).toFixed(4)} ETH (
+                {usdFromWei(result.payout, ethUsd)})
               </p>
             )}
             {result.free && result.multiplier > 0 && (
-              <p className="freeNote">Play for real to win actual ETH 🚀</p>
+              <p className="freeNote">
+                Invite friends — you both get another free launch 🚀
+              </p>
             )}
             <div className="resultBtns">
               <button className="btn launchAgain" onClick={reset}>
@@ -669,17 +767,42 @@ export default function Home() {
               </button>
             </div>
           </div>
+        ) : phase === "won" && result ? (
+          <div className="resultBox">
+            <p className="win">
+              🎉 X{result.multiplier}! You won{" "}
+              {Number(formatEther(result.payout)).toFixed(4)} ETH (
+              {usdFromWei(result.payout, ethUsd)})
+              {result.free ? " — on a FREE launch!" : ""}
+            </p>
+            <button className="btn launch" onClick={handleClaim}>
+              💰 Claim {Number(formatEther(result.payout)).toFixed(4)} ETH (
+              {usdFromWei(result.payout, ethUsd)})
+            </button>
+            <p className="minmax">
+              Claim within ~8 minutes or the win expires. A loss needs no
+              transaction.
+            </p>
+          </div>
         ) : busy ? (
           <button className="btn launch busy" disabled>
             <span className="spinner" />
-            {freePlay
+            {freePlay || phase === "committing"
               ? "Launching…"
-              : phase === "committing"
-                ? "Launching… (1/2)"
-                : "Revealing… (2/2)"}
+              : phase === "claiming"
+                ? "Claiming…"
+                : "Revealing…"}
           </button>
         ) : !isConnected ? (
           <div className="connectRow">
+            {promoPool !== undefined &&
+              promoPool >= parseEther(FREE_BET) * 10n && (
+                <p className="win">
+                  🎁 New here? Connect &amp; get a FREE launch — a real chance
+                  to win {MAX_WIN} ETH (~{maxWinUsd}) at X10. Zero risk, costs
+                  nothing.
+                </p>
+              )}
             {visibleConnectors.map((c) => (
               <button
                 key={c.uid}
@@ -699,9 +822,15 @@ export default function Home() {
             Switch to {activeChain.name}
           </button>
         ) : hasPending ? (
-          <button className="btn launch" onClick={handleReveal}>
-            <span className="rk">🚀</span> Reveal result
-          </button>
+          <>
+            <button className="btn launch" onClick={handleCheck}>
+              <span className="rk">🚀</span> Check result
+            </button>
+            <p className="minmax">
+              You have a pending launch — check it within ~8 minutes or it
+              expires.
+            </p>
+          </>
         ) : (
           <>
             <div className="betHead">
@@ -731,7 +860,9 @@ export default function Home() {
                 value={bet}
                 onChange={(e) => setBet(e.target.value)}
               />
-              <span className="ethSuffix">ETH</span>
+              <span className="ethSuffix">
+                ETH{betValid ? ` ≈ ${usdFromEth(Number(bet), ethUsd)}` : ""}
+              </span>
             </div>
 
             <button
@@ -740,6 +871,9 @@ export default function Home() {
               disabled={!betValid || !contractConfigured}
             >
               <span className="rk">🚀</span> LAUNCH ROCKET
+              {betValid
+                ? ` — win up to ${usdFromEth(Number(bet) * 10, ethUsd)}`
+                : ""}
             </button>
 
             <div className="odds">
@@ -755,10 +889,15 @@ export default function Home() {
         {shareMsg && <p className="shareToast">{shareMsg}</p>}
 
         {isConnected && (
-          <Dashboard stats={stats} onShare={shareStats} sharing={sharing} />
+          <Dashboard
+            stats={stats}
+            onShare={shareStats}
+            sharing={sharing}
+            ethUsd={ethUsd}
+          />
         )}
 
-        <History items={history} you={address} />
+        <History items={history} you={address} ethUsd={ethUsd} />
 
         {error && <p className="error">{error}</p>}
       </section>
@@ -781,7 +920,9 @@ export default function Home() {
               alt="Share card preview"
             />
             <p className="modalHint">
-              Friends who join from your link get 1 free launch 🎁
+              Friends from your link get a FREE launch — a real shot at{" "}
+              {MAX_WIN} ETH (~{maxWinUsd}), zero risk. When they use it, you
+              earn +1 free launch too 🎁
             </p>
             <div className="modalBtns">
               <button

@@ -2,6 +2,7 @@
 
 import { formatEther } from "viem";
 import type { Stats } from "@/lib/stats";
+import { usdFromWei } from "@/lib/price";
 
 function fmt(wei: bigint, digits = 4) {
   return Number(formatEther(wei < 0n ? -wei : wei)).toFixed(digits);
@@ -11,16 +12,19 @@ export function Dashboard({
   stats,
   onShare,
   sharing,
+  ethUsd,
 }: {
   stats: Stats;
   onShare: () => void;
   sharing?: boolean;
+  ethUsd: number;
 }) {
   if (stats.count === 0 && stats.refunds === 0) return null;
 
   const up = stats.pnl >= 0n;
   const pnlSign = up ? "+" : "−";
   const pctSign = stats.pnlPct >= 0 ? "+" : "−";
+  const abs = (wei: bigint) => (wei < 0n ? -wei : wei);
 
   return (
     <div className="dash">
@@ -35,7 +39,8 @@ export function Dashboard({
       <div className={`pnlBig ${up ? "up" : "down"}`}>
         <span className="pnlEth">
           {pnlSign}
-          {fmt(stats.pnl)} ETH
+          {fmt(stats.pnl)} ETH ({pnlSign}
+          {usdFromWei(abs(stats.pnl), ethUsd)})
         </span>
         <span className="pnlPct">
           {pctSign}
@@ -48,7 +53,10 @@ export function Dashboard({
         <Tile label="Wins" value={String(stats.wins)} tone="up" />
         <Tile label="Losses" value={String(stats.losses)} tone="down" />
         <Tile label="Win rate" value={`${stats.winRate.toFixed(0)}%`} />
-        <Tile label="Wagered" value={`${fmt(stats.wagered)} Ξ`} />
+        <Tile
+          label="Wagered"
+          value={`${fmt(stats.wagered)} Ξ · ${usdFromWei(stats.wagered, ethUsd)}`}
+        />
         <Tile
           label="Best hit"
           value={stats.best > 0 ? `X${stats.best}` : "—"}

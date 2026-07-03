@@ -6,6 +6,11 @@ rocket "KRIPTO NR.1", bet ETH, and win a multiplier of your stake:
 - **X0** (rocket failed) · **X2** · **X3** · **X5** · **X10**
 - Min bet **0.0001 ETH** · Max bet **0.001 ETH**
 - House edge ≈ 2% (EV ≈ 0.98)
+- **Referral free launches**: every new player gets one FREE on-chain launch
+  (real win up to 0.01 ETH at X10, zero risk); inviters earn +1 free launch per
+  invitee. Funded by an owner-capped promo pool (see
+  [`contracts/README.md`](./contracts/README.md)).
+- ETH amounts are shown with live **USD** equivalents throughout the UI.
 
 Built with **Next.js (App Router)**, **wagmi/viem**, and a small **Solidity**
 contract.
@@ -18,10 +23,20 @@ This is a hobby/educational project. If you deploy on **Base mainnet** you are
 running a real-money gambling app:
 
 - The contract is **unaudited**. Bugs holding ETH = lost funds.
-- Randomness is **on-chain (not Chainlink VRF)**. The `tx.origin == msg.sender`
-  check blocks the "wrapper contract reverts on a loss" attack, and ordinary
-  players cannot predict outcomes — but this is **not** VRF-grade. For serious
-  volume, switch `_random()` to Chainlink VRF and get an audit.
+- Randomness is **on-chain (not Chainlink VRF)**: commit-reveal over a future
+  `blockhash`. The bet is irreversible before the result is known, so neither a
+  wrapper contract nor a smart wallet can "revert on a loss", and ordinary
+  players cannot predict outcomes — but this is **not** VRF-grade (the Base
+  sequencer is trusted). For serious volume, switch to Chainlink VRF and get an
+  audit.
+- Bets must be revealed within **256 blocks (~8 min)** or they are forfeited to
+  the bankroll — an expiry refund would be a guaranteed-profit exploit (skip the
+  reveal on a loss, reclaim the stake). The frontend auto-reveals within seconds.
+  **Contracts deployed before 2026-07-02 refunded expired bets — replace them**
+  (see [`contracts/README.md`](./contracts/README.md)).
+- The owner can withdraw the non-reserved bankroll at any time — players are
+  trusting the operator not to pull funds mid-flight (reserved payouts for
+  pending games are protected on-chain).
 - You, as the operator, are responsible for the **legal** side of running
   gambling in your jurisdiction.
 - **Test on Base Sepolia first** (`NEXT_PUBLIC_CHAIN=baseSepolia`).
@@ -72,15 +87,18 @@ ETH bets at X10).
 
 ## How it works
 
-- `contracts/KriptoNr1.sol` — **commit-reveal** in two blocks. `launch()` takes
+- `contracts/KriptoNr1.sol` — **commit-reveal, claim-on-win**. `launch()` takes
   the bet in block N and reserves the worst-case payout; no result is computed
   yet, so wallets (including Base Account smart wallets) show a plain transfer
-  with no outcome preview. `resolve(player)` from block N+2 derives the outcome
-  from `blockhash(N+1)` and pays instantly. The bet is irreversible before the
-  result is known, so there's no "inspect then revert on loss" exploit and no
-  `tx.origin` restriction.
-- `app/page.tsx` — wallet connect, bet UI, sends `launch()` and reads the
-  `Launch` event from the receipt to show the result.
+  with no outcome preview. From block N+2 the frontend reads `preview(you)` (a
+  free `eth_call`) to learn the outcome from `blockhash(N+1)`: on a **win** it
+  shows a Claim button that calls `claim()` to pay you; on a **loss** there is
+  nothing to sign. The bet is irreversible before the result is known, so
+  there's no "inspect then revert on loss" exploit and no `tx.origin`
+  restriction.
+- `app/page.tsx` — wallet connect, bet UI, sends `launch()`, polls
+  `preview()`, and on a win shows the Claim button (`claim()`), reading the
+  `Settled` event for the payout.
 - `components/Rocket.tsx` — the rocket animation reacts to the result.
 
 ## License

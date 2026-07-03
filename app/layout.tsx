@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(url),
   title: "KRIPTO NR.1 🚀",
   description:
-    "Launch the rocket KRIPTO NR.1 on Base. Bet from 0.0001 to 0.1 ETH and win up to X10. Open source.",
+    "Launch the rocket KRIPTO NR.1 on Base. Bet from 0.0001 to 0.001 ETH and win up to X10. Open source.",
   openGraph: {
     title: "KRIPTO NR.1 🚀",
     description: "Rocket Lottery on Base — win up to X10.",

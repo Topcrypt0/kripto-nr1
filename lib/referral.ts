@@ -1,106 +1,40 @@
-// Promotional free-launch credits + referral capture. Device-local (localStorage),
-// no backend, no real ETH — free launches are no-stakes bonus spins, so there's
-// nothing of value to farm. A precise cross-device inviter payout would need a
-// shared backend; this is the honest no-infra version.
+// Referral capture. Free launches are ON-CHAIN now (contract v3): every new
+// address gets one real free launch (win up to 0.01 ETH, zero stake), and the
+// inviter earns +1 free launch per unique invitee (capped in the contract).
+// This module only remembers who invited this device so the frontend can pass
+// the inviter to freeLaunch(inviter).
 
 const REF_KEY = "kr1_ref"; // who invited this device
-const SPINS_KEY = "kr1_free_spins"; // current free-launch balance
-const STARTED_KEY = "kr1_started"; // starter grant given
-const INVITED_KEY = "kr1_invited"; // invite bonus given
-const EARNED_KEY = "kr1_share_earned"; // spins earned by sharing (capped)
-
-const STARTER = 3; // brand-new device
-const INVITE_BONUS = 2; // arriving via a ref link
-const SHARE_BONUS = 1; // per share
-const SHARE_CAP = 10; // max spins earnable via sharing
 
 const isAddr = (s: string) => /^0x[a-fA-F0-9]{40}$/.test(s);
 
-export function getFreeSpins(): number {
-  try {
-    return Math.max(0, Number(localStorage.getItem(SPINS_KEY) ?? "0") || 0);
-  } catch {
-    return 0;
-  }
-}
-
-function setFreeSpins(n: number) {
-  try {
-    localStorage.setItem(SPINS_KEY, String(Math.max(0, n)));
-  } catch {
-    /* ignore */
-  }
-}
-
-export function addFreeSpins(n: number): number {
-  const v = getFreeSpins() + n;
-  setFreeSpins(v);
-  return v;
-}
-
-export function useFreeSpin(): number {
-  const v = Math.max(0, getFreeSpins() - 1);
-  setFreeSpins(v);
-  return v;
-}
-
 export function getReferrer(): string | null {
   try {
-    return localStorage.getItem(REF_KEY);
+    const v = localStorage.getItem(REF_KEY);
+    return v && isAddr(v) ? v : null;
   } catch {
     return null;
   }
 }
 
 /**
- * Run once per load (and again once we know the wallet). Grants the starter
- * bonus on a fresh device and captures `?ref=<addr>` + the invite bonus.
- * Returns the resulting free-spin balance.
+ * Run once per load (and again once the wallet is known). Captures
+ * `?ref=<addr>` into localStorage — first inviter wins, self-invites ignored.
  */
-export function initFreeSpins(self?: string): number {
-  if (typeof window === "undefined") return 0;
+export function captureReferrer(self?: string): string | null {
+  if (typeof window === "undefined") return null;
   try {
-    if (localStorage.getItem(STARTED_KEY) !== "1") {
-      localStorage.setItem(STARTED_KEY, "1");
-      addFreeSpins(STARTER);
-    }
-
     const ref = new URLSearchParams(window.location.search).get("ref");
     if (
       ref &&
       isAddr(ref) &&
-      ref.toLowerCase() !== (self ?? "").toLowerCase()
+      ref.toLowerCase() !== (self ?? "").toLowerCase() &&
+      getReferrer() == null
     ) {
-      if (getReferrer() == null) localStorage.setItem(REF_KEY, ref);
-      if (localStorage.getItem(INVITED_KEY) !== "1") {
-        localStorage.setItem(INVITED_KEY, "1");
-        addFreeSpins(INVITE_BONUS);
-      }
+      localStorage.setItem(REF_KEY, ref);
     }
   } catch {
     /* ignore */
   }
-  return getFreeSpins();
-}
-
-/** Reward the inviter for sharing (capped). Returns the new balance + whether granted. */
-export function grantShareReward(): { spins: number; granted: boolean } {
-  try {
-    const earned = Number(localStorage.getItem(EARNED_KEY) ?? "0") || 0;
-    if (earned >= SHARE_CAP) return { spins: getFreeSpins(), granted: false };
-    localStorage.setItem(EARNED_KEY, String(earned + 1));
-    return { spins: addFreeSpins(SHARE_BONUS), granted: true };
-  } catch {
-    return { spins: getFreeSpins(), granted: false };
-  }
-}
-
-/** Weighted outcome, identical odds to the on-chain contract. */
-export function rollMultiplier(): number {
-  const r = Math.random() * 10000;
-  if (r < 6500) return 0;
-  if (r < 8700) return 2;
-  if (r < 9500) return 3;
-  if (r < 9900) return 5;
-  return 10;
+  return getReferrer();
 }

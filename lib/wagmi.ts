@@ -27,7 +27,10 @@ try {
 // one it stays dormant and the Base Account + injected connectors take over.
 // cookieStorage keeps the session through SSR in the in-app browser.
 export const config = createConfig({
-  chains: [baseSepolia, base],
+  // The active chain goes first: wagmi uses the first chain as the default for
+  // reads when no wallet is connected (otherwise a logged-out visitor would
+  // query the wrong network and see no bankroll/promo data).
+  chains: useTestnet ? [baseSepolia, base] : [base, baseSepolia],
   connectors: [
     farcasterMiniApp(),
     baseAccount({ appName: "KRIPTO NR.1" }),
