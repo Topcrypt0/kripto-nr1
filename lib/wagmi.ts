@@ -1,4 +1,4 @@
-import { http, cookieStorage, createConfig, createStorage } from "wagmi";
+import { fallback, http, cookieStorage, createConfig, createStorage } from "wagmi";
 import { base, baseSepolia } from "wagmi/chains";
 import { baseAccount, injected } from "wagmi/connectors";
 import { farcasterMiniApp } from "@farcaster/miniapp-wagmi-connector";
@@ -38,9 +38,20 @@ export const config = createConfig({
   ],
   transports: {
     [baseSepolia.id]: http(),
-    // Optional: set NEXT_PUBLIC_RPC_URL to a dedicated Base RPC for reliability
-    // (the public endpoint rate-limits and can drop logs). Falls back to default.
-    [base.id]: http(process.env.NEXT_PUBLIC_RPC_URL),
+    // Reliability: the default public endpoint rate-limits browser traffic,
+    // which stalls the reveal step mid-game. Try the dedicated RPC first (set
+    // NEXT_PUBLIC_RPC_URL), then rotate through public fallbacks.
+    [base.id]: fallback(
+      [
+        ...(process.env.NEXT_PUBLIC_RPC_URL
+          ? [http(process.env.NEXT_PUBLIC_RPC_URL)]
+          : []),
+        http("https://base-rpc.publicnode.com"),
+        http("https://base.llamarpc.com"),
+        http(), // chain default (mainnet.base.org)
+      ],
+      { rank: false },
+    ),
   },
   storage: createStorage({ storage: cookieStorage }),
   ssr: true,

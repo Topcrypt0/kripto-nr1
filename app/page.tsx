@@ -288,16 +288,22 @@ export default function Home() {
   }
 
   // Poll preview(you) until the reveal block exists; returns the outcome.
+  // Transient RPC errors are retried — one flaky response must not strand the
+  // player mid-reveal (their bet would sit pending until it expires).
   async function pollPreview(): Promise<{ multiplier: number; payout: bigint }> {
     if (!publicClient || !address) throw new Error("Wallet not ready");
     for (let i = 0; i < 80; i++) {
-      const [ready, mult, payout] = (await publicClient.readContract({
-        address: CONTRACT_ADDRESS,
-        abi: kriptoNr1Abi,
-        functionName: "preview",
-        args: [address],
-      })) as readonly [boolean, bigint, bigint];
-      if (ready) return { multiplier: Number(mult), payout };
+      try {
+        const [ready, mult, payout] = (await publicClient.readContract({
+          address: CONTRACT_ADDRESS,
+          abi: kriptoNr1Abi,
+          functionName: "preview",
+          args: [address],
+        })) as readonly [boolean, bigint, bigint];
+        if (ready) return { multiplier: Number(mult), payout };
+      } catch {
+        /* transient RPC failure — keep polling */
+      }
       await new Promise((r) => setTimeout(r, 1500));
     }
     throw new Error("Timed out waiting for the reveal block — tap Check result.");
