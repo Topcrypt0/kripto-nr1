@@ -54,6 +54,23 @@ const arbClient = createPublicClient({
   transport: http("https://arb1.arbitrum.io/rpc"),
 });
 
+// Known smart-wallet connector ids. Browser-extension EOAs arrive under many
+// ids ("injected", "io.metamask", "io.rabby", …), so detection is a denylist.
+const SMART_WALLET_IDS = ["baseAccount", "coinbaseWalletSDK", "farcaster"];
+
+/** Unwrap nested `cause` chains so the real wallet/API error is visible. */
+function rootCause(e: unknown): string {
+  let err: unknown = e;
+  let text = err instanceof Error ? err.message : String(err);
+  for (let i = 0; i < 5 && err instanceof Error && err.cause; i++) {
+    err = err.cause;
+    const causeText =
+      err instanceof Error ? err.message : String(err ?? "");
+    if (causeText) text = causeText;
+  }
+  return text.split("\n")[0];
+}
+
 /** Format a price for HL: ≤5 significant figures, ≤(6 - szDecimals) decimals. */
 function formatPx(px: number, szDecimals: number): string {
   const maxDecimals = Math.max(0, 6 - szDecimals);
@@ -89,10 +106,7 @@ export function PerpsTerminal() {
   // Hyperliquid L1 actions are verified by recovering an ECDSA signer, so
   // only plain EOA wallets (MetaMask, Rabby, …) can trade. Smart wallets
   // (Base Account passkeys, mini-app host wallets) produce signatures HL
-  // cannot verify — warn instead of failing cryptically. Detection is a
-  // DENYLIST of known smart-wallet connectors: browser extensions arrive
-  // under many ids ("injected", "io.metamask", "io.rabby", …) and are EOAs.
-  const SMART_WALLET_IDS = ["baseAccount", "coinbaseWalletSDK", "farcaster"];
+  // cannot verify — warn instead of failing cryptically.
   const isEoaWallet = connector ? !SMART_WALLET_IDS.includes(connector.id) : true;
 
   const info = useMemo(
@@ -260,16 +274,25 @@ export function PerpsTerminal() {
 
   const friendlyError = useCallback(
     (e: unknown): string => {
-      let text = e instanceof Error ? e.message : String(e);
-      if (/typed data|sign/i.test(text) && connector?.id !== "injected") {
+      const isSmartWallet = connector
+        ? SMART_WALLET_IDS.includes(connector.id)
+        : false;
+      const cause = rootCause(e);
+      let text = e instanceof Error ? e.message.split("\n")[0] : String(e);
+      if (/typed data|sign/i.test(text) && isSmartWallet) {
         text =
           "Your wallet type can't sign Hyperliquid orders. Smart wallets (Base Account, in-app wallets) are not supported by Hyperliquid — connect a standard wallet like MetaMask or Rabby and try again.";
-      } else if (/does not exist|insufficient/i.test(text)) {
-        text = `${text} — make sure your Hyperliquid trading balance is funded (Deposit button above).`;
+      } else if (/reject|denied/i.test(cause)) {
+        text = "Signature request was rejected in the wallet — try again and confirm the prompt.";
+      } else if (/does not exist|insufficient/i.test(cause)) {
+        text = `${cause} — make sure your Hyperliquid trading balance is funded (Deposit button above).`;
+      } else if (cause && cause !== text) {
+        // Surface the underlying wallet/API error instead of the generic wrapper.
+        text = `${text} (${cause})`;
       }
       return text;
     },
-    [connector?.id],
+    [connector],
   );
 
   /** Attach the builder code when the user has approved it (approve once). */

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SwapWidget } from "@/components/SwapWidget";
+import { SwapWalletNotice } from "@/components/SwapWalletNotice";
 
 export const metadata: Metadata = {
   title: "Swap & Bridge — KRIPTO NR.1 🚀",
@@ -16,6 +17,7 @@ export default function SwapPage() {
         </h1>
         <span className="pFeeBadge">BEST ROUTE · 30+ CHAINS</span>
       </div>
+      <SwapWalletNotice />
       <div className="swapWrap">
         <SwapWidget />
       </div>
