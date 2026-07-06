@@ -16,6 +16,10 @@ const LiFiWidget = dynamic(
 // Every quote requested through the widget carries our integrator id + fee.
 // Fees accumulate in LI.FI's FeeCollector contract per chain and are claimed
 // at https://portal.li.fi under the same integrator string.
+//
+// Wallet handling: the widget (v3) detects the app's WagmiProvider above it
+// and switches to external wallet management automatically, so the NavBar
+// connection (Base Account / injected / Farcaster mini-app) is reused.
 const config: Partial<WidgetConfig> = {
   integrator: LIFI_INTEGRATOR,
   feeConfig: {
@@ -24,20 +28,17 @@ const config: Partial<WidgetConfig> = {
   },
   appearance: "dark",
   theme: {
-    colorSchemes: {
-      dark: {
-        palette: {
-          primary: { main: "#e8442b" },
-          secondary: { main: "#f5b50a" },
-          background: {
-            default: "#0a0f26",
-            paper: "#101736",
-          },
-        },
+    palette: {
+      primary: { main: "#e8442b" },
+      secondary: { main: "#f5b50a" },
+      background: {
+        default: "#0a0f26",
+        paper: "#101736",
       },
     },
     shape: {
       borderRadius: 16,
+      borderRadiusSecondary: 12,
     },
     typography: {
       fontFamily: '"Space Grotesk", system-ui, sans-serif',
@@ -47,11 +48,6 @@ const config: Partial<WidgetConfig> = {
       borderRadius: "24px",
       boxShadow: "0 22px 60px rgba(0,0,0,.55)",
     },
-  },
-  // Wallet handling is delegated to the app's existing wagmi config
-  // (Base Account / injected / Farcaster mini-app connectors).
-  walletConfig: {
-    usePartialWalletManagement: true,
   },
 };
 

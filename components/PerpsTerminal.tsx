@@ -10,6 +10,7 @@ import {
   type MetaAndAssetCtxsResponse,
 } from "@nktkas/hyperliquid";
 import { HL_BUILDER, HL_BUILDER_FEE } from "@/lib/monetize";
+import { PerpsChart } from "@/components/PerpsChart";
 
 type Market = {
   index: number;
@@ -155,17 +156,27 @@ export function PerpsTerminal() {
             .maxBuilderFee({ user: address, builder: HL_BUILDER })
             .catch(() => 0),
         );
-        if (approved < HL_BUILDER_FEE) {
-          setMsg({
-            ok: true,
-            text: "One-time signature to enable trading via KRIPTO NR.1…",
-          });
-          await exchange.approveBuilderFee({
-            builder: HL_BUILDER,
-            maxFeeRate: `${HL_BUILDER_FEE / 1000}%`,
-          });
+        if (approved >= HL_BUILDER_FEE) {
+          builder = { b: HL_BUILDER, f: HL_BUILDER_FEE };
+        } else {
+          try {
+            setMsg({
+              ok: true,
+              text: "One-time signature to enable trading via KRIPTO NR.1…",
+            });
+            await exchange.approveBuilderFee({
+              builder: HL_BUILDER,
+              maxFeeRate: `${HL_BUILDER_FEE / 1000}%`,
+            });
+            builder = { b: HL_BUILDER, f: HL_BUILDER_FEE };
+          } catch {
+            // Builder approval can fail for reasons outside the user's
+            // control (e.g. the builder account is below Hyperliquid's
+            // 100 USDC perps-balance requirement). Never block trading on
+            // it — place the order without attribution instead.
+            builder = undefined;
+          }
         }
-        builder = { b: HL_BUILDER, f: HL_BUILDER_FEE };
       }
 
       // Market order = aggressive IOC limit around the mark price.
@@ -282,6 +293,8 @@ export function PerpsTerminal() {
             <span className="hlStatV">{market ? fmtUsd(market.dayNtlVlm) : "—"}</span>
           </div>
         </div>
+
+        {market && <PerpsChart coin={market.coin} />}
 
         <div className="hlBody">
           <div className="hlLabel">Your account</div>
