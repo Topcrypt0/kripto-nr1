@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Providers } from "./providers";
 import { MiniAppReady } from "@/components/MiniAppReady";
+import { NavBar } from "@/components/NavBar";
 import { appUrl, embed } from "@/lib/miniapp";
 import "./globals.css";
 
@@ -19,10 +20,11 @@ export const metadata: Metadata = {
   metadataBase: new URL(url),
   title: "KRIPTO NR.1 🚀",
   description:
-    "Launch the rocket KRIPTO NR.1 on Base. Bet from 0.0001 to 0.001 ETH and win up to X10. Open source.",
+    "KRIPTO NR.1 — DEX platform: swap & bridge across 30+ chains, trade perps on Hyperliquid, prediction markets, and the rocket lottery on Base.",
   openGraph: {
     title: "KRIPTO NR.1 🚀",
-    description: "Rocket Lottery on Base — win up to X10.",
+    description:
+      "Swap · Bridge · Perps · Predictions · Rocket Lottery — all in one.",
     images: ["/hero.png"],
   },
   other: {
@@ -42,7 +44,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          <NavBar />
+          {children}
+        </Providers>
         <MiniAppReady />
       </body>
     </html>

@@ -25,7 +25,7 @@ export function GET() {
     description:
       "Launch the rocket and win up to X10. Provably-fair on-chain crash game on Base. Bet from 0.0001 ETH.",
     iconUrl: `${url}/hero.png`,
-    homeUrl: url,
+    homeUrl: `${url}/lottery`,
     imageUrl: `${url}/hero.png`,
     heroImageUrl: `${url}/hero.png`,
     splashImageUrl: `${url}/hero.png`,

@@ -27,7 +27,9 @@ export function embed(url = appUrl()) {
       title: "🚀 Launch rocket",
       action: {
         type: "launch_miniapp",
-        url,
+        // Mini App users land straight in the rocket game; the full DEX
+        // platform (swap/perps/predict) lives at the root for web visitors.
+        url: `${url}/lottery`,
         name: APP_NAME,
         splashImageUrl: `${url}/hero.png`,
         splashBackgroundColor: SPLASH_BG,
