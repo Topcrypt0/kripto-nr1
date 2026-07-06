@@ -813,3 +813,36 @@ code { background: rgba(255, 255, 255, .1); padding: 1px 5px; border-radius: 5px
 }
 .hlTfOn { color: #ffd98a; border-color: rgba(245,181,10,.45); background: rgba(245,181,10,.1); }
 .hlChart { height: 320px; padding: 6px 8px 8px; }
+
+/* perps balance + funding */
+.hlBalRow {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; margin-bottom: 12px; border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.09); background: rgba(0,0,0,.22);
+}
+.hlBalV { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 15px; }
+.hlMsgWarn {
+  background: rgba(245,181,10,.09); border: 1px solid rgba(245,181,10,.35); color: #ffe9b8;
+  margin: 0 0 12px;
+}
+.hlFund {
+  padding: 14px; margin-bottom: 12px; border-radius: 14px;
+  border: 1px solid rgba(245,181,10,.4);
+  background:
+    radial-gradient(300px 90px at 10% 0%, rgba(255,106,82,.14), transparent 70%),
+    linear-gradient(180deg, rgba(245,181,10,.09), rgba(245,181,10,.02));
+}
+.hlFundTitle { font-weight: 800; font-size: 13.5px; color: #ffd98a; margin-bottom: 6px; }
+.hlFundDesc { font-size: 12px; color: #c3cdef; line-height: 1.55; margin-bottom: 10px; }
+.hlFundRow { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.hlFundBtn {
+  padding: 0 18px; border-radius: 12px; border: 0; cursor: pointer;
+  font-weight: 800; font-size: 13px; color: #1a1305; font-family: inherit;
+  background: linear-gradient(180deg, #ffd155, #f5b50a);
+}
+.hlFundBtn:disabled { opacity: .55; cursor: default; }
+.hlFundSwap {
+  display: block; text-align: center; padding: 11px 0; border-radius: 12px; text-decoration: none;
+  font-weight: 800; font-size: 13px; color: #ffd98a;
+  border: 1px solid rgba(245,181,10,.4); background: rgba(245,181,10,.07);
+}

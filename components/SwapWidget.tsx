@@ -27,6 +27,9 @@ const config: Partial<WidgetConfig> = {
     fee: LIFI_FEE,
   },
   appearance: "dark",
+  // Sync form state with URL params so other pages can deep-link prefilled
+  // swaps (e.g. /swap?toChain=42161&toToken=0x… from the perps funding flow).
+  buildUrl: true,
   theme: {
     palette: {
       primary: { main: "#e8442b" },

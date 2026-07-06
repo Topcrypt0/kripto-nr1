@@ -1,7 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useAccount, useWalletClient } from "wagmi";
+import {
+  createPublicClient,
+  erc20Abi,
+  formatUnits,
+  http,
+  parseUnits,
+} from "viem";
+import { arbitrum } from "viem/chains";
+import { useAccount, useWalletClient, useWriteContract } from "wagmi";
 import {
   ExchangeClient,
   HttpTransport,
@@ -25,6 +33,22 @@ type Market = {
 };
 
 const POLL_MS = 5_000;
+
+// --- Hyperliquid funding (native bridge on Arbitrum) ---------------------
+// Sending native USDC to the HL bridge credits the SENDER's Hyperliquid
+// perps account within ~1 minute. Deposits below 5 USDC are NOT credited
+// (bridge rule), so the UI enforces the minimum.
+const ARB_USDC = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831" as const;
+const HL_BRIDGE = "0x2Df1c51E09aECF9cacB7bc98cB1742757f163dF7" as const;
+const MIN_DEPOSIT = 5;
+
+const arbClient = createPublicClient({
+  chain: arbitrum,
+  transport: http("https://arb1.arbitrum.io/rpc"),
+});
+
+// Swap page prefilled to "anything -> USDC on Arbitrum" (widget buildUrl).
+const FUND_SWAP_URL = `/swap?toChain=${arbitrum.id}&toToken=${ARB_USDC}`;
 
 /** Format a price for HL: ≤5 significant figures, ≤(6 - szDecimals) decimals. */
 function formatPx(px: number, szDecimals: number): string {
@@ -56,8 +80,15 @@ function fmtPx(n: number): string {
 }
 
 export function PerpsTerminal() {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, connector } = useAccount();
   const { data: walletClient } = useWalletClient();
+  const { writeContractAsync } = useWriteContract();
+
+  // Hyperliquid L1 actions are verified by recovering an ECDSA signer, so
+  // only plain EOA wallets (MetaMask, Rabby, …) can trade. Smart wallets
+  // (Base Account passkeys, most mini-app hosts) produce signatures HL
+  // cannot verify — warn instead of failing cryptically.
+  const isEoaWallet = connector?.id === "injected";
 
   const info = useMemo(
     () => new InfoClient({ transport: new HttpTransport() }),
@@ -72,6 +103,9 @@ export function PerpsTerminal() {
   const [state, setState] = useState<ClearinghouseStateResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [arbUsdc, setArbUsdc] = useState<bigint | null>(null);
+  const [depositAmt, setDepositAmt] = useState("");
+  const [depositBusy, setDepositBusy] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadMarkets = useCallback(async () => {
@@ -101,10 +135,23 @@ export function PerpsTerminal() {
   const loadAccount = useCallback(async () => {
     if (!address) {
       setState(null);
+      setArbUsdc(null);
       return;
     }
     try {
       setState(await info.clearinghouseState({ user: address }));
+    } catch {
+      /* keep last */
+    }
+    try {
+      setArbUsdc(
+        await arbClient.readContract({
+          address: ARB_USDC,
+          abi: erc20Abi,
+          functionName: "balanceOf",
+          args: [address],
+        }),
+      );
     } catch {
       /* keep last */
     }
@@ -136,6 +183,45 @@ export function PerpsTerminal() {
   const positions = state?.assetPositions ?? [];
   const withdrawable = Number(state?.withdrawable ?? 0);
   const accountValue = Number(state?.marginSummary?.accountValue ?? 0);
+  const arbUsdcNum = arbUsdc !== null ? Number(formatUnits(arbUsdc, 6)) : null;
+  const needsFunding = isConnected && state !== null && accountValue <= 0;
+
+  const deposit = useCallback(async () => {
+    if (!address) return;
+    const amt = Number(depositAmt);
+    if (!Number.isFinite(amt) || amt < MIN_DEPOSIT) {
+      setMsg({
+        ok: false,
+        text: `Minimum deposit is ${MIN_DEPOSIT} USDC — smaller transfers are not credited by the Hyperliquid bridge.`,
+      });
+      return;
+    }
+    if (arbUsdcNum !== null && amt > arbUsdcNum) {
+      setMsg({ ok: false, text: "Amount exceeds your USDC balance on Arbitrum." });
+      return;
+    }
+    setDepositBusy(true);
+    setMsg(null);
+    try {
+      await writeContractAsync({
+        chainId: arbitrum.id,
+        address: ARB_USDC,
+        abi: erc20Abi,
+        functionName: "transfer",
+        args: [HL_BRIDGE, parseUnits(depositAmt, 6)],
+      });
+      setMsg({
+        ok: true,
+        text: "Deposit sent ✅ Funds appear in your Hyperliquid account in ~1 minute.",
+      });
+      setDepositAmt("");
+    } catch (e) {
+      const text = e instanceof Error ? e.message.split("\n")[0] : String(e);
+      setMsg({ ok: false, text });
+    } finally {
+      setDepositBusy(false);
+    }
+  }, [address, depositAmt, arbUsdcNum, writeContractAsync]);
 
   const placeOrder = useCallback(async () => {
     if (!walletClient || !address || !market) return;
@@ -214,12 +300,28 @@ export function PerpsTerminal() {
       });
       loadAccount();
     } catch (e) {
-      const text = e instanceof Error ? e.message : String(e);
+      let text = e instanceof Error ? e.message : String(e);
+      if (/typed data|sign/i.test(text) && connector?.id !== "injected") {
+        text =
+          "Your wallet type can't sign Hyperliquid orders. Smart wallets (Base Account, in-app wallets) are not supported by Hyperliquid — connect a standard wallet like MetaMask or Rabby and try again.";
+      } else if (/does not exist|Insufficient margin|insufficient/i.test(text)) {
+        text = `${text} — make sure your Hyperliquid trading balance is funded (see Deposit below).`;
+      }
       setMsg({ ok: false, text });
     } finally {
       setBusy(false);
     }
-  }, [walletClient, address, market, side, usdSize, selected, info, loadAccount]);
+  }, [
+    walletClient,
+    address,
+    market,
+    side,
+    usdSize,
+    selected,
+    info,
+    loadAccount,
+    connector?.id,
+  ]);
 
   return (
     <div className="hlLayout">
@@ -354,6 +456,73 @@ export function PerpsTerminal() {
       {/* --- order form --- */}
       <div className="pPanel">
         <div className="hlBody">
+          {isConnected && (
+            <div className="hlBalRow">
+              <span className="hlStatK">Trading balance</span>
+              <span
+                className={`hlBalV ${withdrawable > 0 ? "pGreen" : "pRed"}`}
+              >
+                {fmtUsd(withdrawable)}
+              </span>
+            </div>
+          )}
+
+          {isConnected && !isEoaWallet && (
+            <div className="hlMsg hlMsgWarn">
+              ⚠️ Hyperliquid requires a standard (EOA) wallet signature.
+              Smart wallets like Base Account can&apos;t place orders — connect
+              MetaMask / Rabby instead.
+            </div>
+          )}
+
+          {needsFunding && (
+            <div className="hlFund">
+              <div className="hlFundTitle">💰 Fund your trading account</div>
+              <div className="hlFundDesc">
+                Deposit USDC (Arbitrum) straight into Hyperliquid via the
+                official bridge — arrives in ~1 minute.
+                {arbUsdcNum !== null && (
+                  <>
+                    {" "}
+                    Your Arbitrum USDC:{" "}
+                    <b className="pMono">{arbUsdcNum.toFixed(2)}</b>
+                  </>
+                )}
+              </div>
+              {arbUsdcNum !== null && arbUsdcNum >= MIN_DEPOSIT ? (
+                <div className="hlFundRow">
+                  <input
+                    className="hlInput"
+                    inputMode="decimal"
+                    placeholder={`min ${MIN_DEPOSIT}`}
+                    value={depositAmt}
+                    onChange={(e) => setDepositAmt(e.target.value)}
+                  />
+                  <button
+                    className="hlFundBtn"
+                    disabled={depositBusy || !isEoaWallet}
+                    onClick={deposit}
+                  >
+                    {depositBusy ? "Sending…" : "Deposit"}
+                  </button>
+                </div>
+              ) : (
+                <a className="hlFundSwap" href={FUND_SWAP_URL}>
+                  🔁 No USDC on Arbitrum? Swap from any chain →
+                </a>
+              )}
+              {arbUsdcNum !== null &&
+                arbUsdcNum >= MIN_DEPOSIT &&
+                !isEoaWallet && (
+                  <div className="hlNote">
+                    Deposits are disabled for smart wallets — Hyperliquid
+                    couldn&apos;t sign trades or withdrawals from one, so funds
+                    would be stuck. Use MetaMask / Rabby.
+                  </div>
+                )}
+            </div>
+          )}
+
           <div className="hlSideBtns">
             <button
               className={`hlSide hlSideLong${side === "long" ? " hlSideOn" : ""}`}

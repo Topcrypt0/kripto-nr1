@@ -1,5 +1,5 @@
 import { fallback, http, cookieStorage, createConfig, createStorage } from "wagmi";
-import { base, baseSepolia } from "wagmi/chains";
+import { arbitrum, base, baseSepolia } from "wagmi/chains";
 import { baseAccount, injected } from "wagmi/connectors";
 import { farcasterMiniApp } from "@farcaster/miniapp-wagmi-connector";
 import { Attribution } from "ox/erc8021";
@@ -30,7 +30,8 @@ export const config = createConfig({
   // The active chain goes first: wagmi uses the first chain as the default for
   // reads when no wallet is connected (otherwise a logged-out visitor would
   // query the wrong network and see no bankroll/promo data).
-  chains: useTestnet ? [baseSepolia, base] : [base, baseSepolia],
+  // Arbitrum is included for the Hyperliquid USDC deposit flow on /perps.
+  chains: useTestnet ? [baseSepolia, base, arbitrum] : [base, baseSepolia, arbitrum],
   connectors: [
     farcasterMiniApp(),
     baseAccount({ appName: "KRIPTO NR.1" }),
@@ -38,6 +39,7 @@ export const config = createConfig({
   ],
   transports: {
     [baseSepolia.id]: http(),
+    [arbitrum.id]: http("https://arb1.arbitrum.io/rpc"),
     // Reliability: the default public endpoint rate-limits browser traffic,
     // which stalls the reveal step mid-game. Try the dedicated RPC first (set
     // NEXT_PUBLIC_RPC_URL), then rotate through public fallbacks.
