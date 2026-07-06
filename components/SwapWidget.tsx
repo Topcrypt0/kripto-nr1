@@ -21,7 +21,6 @@ const config: Partial<WidgetConfig> = {
   feeConfig: {
     name: "KRIPTO NR.1",
     fee: LIFI_FEE,
-    showFeePercentage: true,
   },
   appearance: "dark",
   theme: {

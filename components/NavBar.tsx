@@ -10,6 +10,7 @@ const TABS = [
   { href: "/perps", label: "Perps", emoji: "📈" },
   { href: "/predict", label: "Predict", emoji: "🔮" },
   { href: "/lottery", label: "Lottery", emoji: "🚀" },
+  { href: "/docs", label: "Docs", emoji: "📄" },
 ];
 
 function short(addr?: string) {

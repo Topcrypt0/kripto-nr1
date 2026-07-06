@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { SwapWidget } from "@/components/SwapWidget";
-import { LIFI_FEE } from "@/lib/monetize";
 
 export const metadata: Metadata = {
   title: "Swap & Bridge — KRIPTO NR.1 🚀",
@@ -15,9 +14,7 @@ export default function SwapPage() {
         <h1 className="pPageTitle">
           Swap <span className="accent">&amp;</span> Bridge
         </h1>
-        <span className="pFeeBadge">
-          BEST ROUTE · {(LIFI_FEE * 100).toFixed(2)}% FEE
-        </span>
+        <span className="pFeeBadge">BEST ROUTE · 30+ CHAINS</span>
       </div>
       <div className="swapWrap">
         <SwapWidget />

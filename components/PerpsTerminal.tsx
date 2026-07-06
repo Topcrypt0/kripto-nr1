@@ -9,11 +9,7 @@ import {
   type ClearinghouseStateResponse,
   type MetaAndAssetCtxsResponse,
 } from "@nktkas/hyperliquid";
-import {
-  HL_BUILDER,
-  HL_BUILDER_FEE,
-  HL_BUILDER_FEE_PCT,
-} from "@/lib/monetize";
+import { HL_BUILDER, HL_BUILDER_FEE } from "@/lib/monetize";
 
 type Market = {
   index: number;
@@ -162,7 +158,7 @@ export function PerpsTerminal() {
         if (approved < HL_BUILDER_FEE) {
           setMsg({
             ok: true,
-            text: `One-time signature: approving the ${HL_BUILDER_FEE_PCT} platform fee…`,
+            text: "One-time signature to enable trading via KRIPTO NR.1…",
           });
           await exchange.approveBuilderFee({
             builder: HL_BUILDER,
@@ -398,10 +394,11 @@ export function PerpsTerminal() {
 
           <p className="hlNote">
             Market order (IOC, ~2% max slippage) on Hyperliquid mainnet, cross
-            margin.{" "}
-            {HL_BUILDER
-              ? `Includes the ${HL_BUILDER_FEE_PCT} KRIPTO NR.1 platform fee (one-time approval on first trade).`
-              : "Platform fee disabled (set NEXT_PUBLIC_HL_BUILDER)."}
+            margin. Non-custodial — orders are signed by your own wallet. See{" "}
+            <a href="/docs" style={{ color: "#ffd98a" }}>
+              docs
+            </a>{" "}
+            for details and fees.
           </p>
         </div>
       </div>

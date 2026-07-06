@@ -768,3 +768,23 @@ code { background: rgba(255, 255, 255, .1); padding: 1px 5px; border-radius: 5px
 
 /* ---------- swap ---------- */
 .swapWrap { display: flex; justify-content: center; }
+
+/* ---------- docs ---------- */
+.docsPage { max-width: 860px; }
+.docsSection { padding: 22px 24px; margin-bottom: 14px; }
+.docsH2 { margin: 0 0 10px; font-size: 18px; }
+.docsP { margin: 0; color: #c3cdef; font-size: 14px; line-height: 1.7; }
+.docsP a, .docsList a { color: #ffd98a; }
+.docsList { margin: 0; padding-left: 18px; color: #c3cdef; font-size: 14px; line-height: 1.8; }
+.docsTableWrap { overflow-x: auto; margin-top: 12px; }
+.docsTable { width: 100%; border-collapse: collapse; font-size: 13px; }
+.docsTable th, .docsTable td {
+  text-align: left; padding: 9px 12px; border-bottom: 1px solid rgba(255,255,255,.07);
+  vertical-align: top; line-height: 1.55;
+}
+.docsTable th { color: #5f6ea3; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
+.docsTable td { color: #c3cdef; }
+.docsPage code {
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  background: rgba(255,255,255,.07); padding: 1px 6px; border-radius: 6px;
+}

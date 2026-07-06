@@ -67,7 +67,12 @@ export default function Home() {
       </section>
 
       <footer className="pFoot">
-        <span>KRIPTO NR.1 · open source · non-custodial</span>
+        <span>
+          KRIPTO NR.1 · open source · non-custodial ·{" "}
+          <Link href="/docs" style={{ color: "#ffd98a" }}>
+            docs
+          </Link>
+        </span>
         <span className="pFootMuted">
           Routing by LI.FI · Perps by Hyperliquid · Markets by Polymarket
         </span>
