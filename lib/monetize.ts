@@ -32,13 +32,21 @@ export const HL_BUILDER_FEE = Number(
 export const HL_BUILDER_FEE_PCT = `${(HL_BUILDER_FEE / 1000).toFixed(3)}%`;
 
 /**
- * Polymarket: markets are browsed natively in the app; the trade action deep
- * links to Polymarket. Apply for the Polymarket builder/partner program to
- * attach order attribution + revenue share, then set your code here.
+ * Polymarket revenue. Preferred path: our own trading app
+ * (github.com/Topcrypt0/kripto-polymarket-app) — a Polymarket CLOB frontend
+ * with builder order attribution (revenue on every order), email login via
+ * Magic and gasless Safe wallets. Deploy it and set its URL here; the
+ * Predict tab's Trade buttons will send users there. If unset, links fall
+ * back to polymarket.com with the optional `?via=` referral code.
  */
+export const POLYMARKET_APP_URL = (
+  process.env.NEXT_PUBLIC_POLYMARKET_APP_URL ?? ""
+).replace(/\/+$/, "");
+
 export const POLYMARKET_REF = process.env.NEXT_PUBLIC_POLYMARKET_REF ?? "";
 
-export function polymarketEventUrl(slug: string): string {
+export function polymarketTradeUrl(slug: string): string {
+  if (POLYMARKET_APP_URL) return POLYMARKET_APP_URL;
   const base = `https://polymarket.com/event/${slug}`;
   return POLYMARKET_REF ? `${base}?via=${POLYMARKET_REF}` : base;
 }

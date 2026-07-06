@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { polymarketEventUrl } from "@/lib/monetize";
+import { POLYMARKET_APP_URL, polymarketTradeUrl } from "@/lib/monetize";
 
 type GammaMarket = {
   question?: string;
@@ -97,6 +97,20 @@ export function PredictionMarkets() {
 
   return (
     <>
+      {POLYMARKET_APP_URL && (
+        <a
+          className="pmAppBanner"
+          href={POLYMARKET_APP_URL}
+          target="_blank"
+          rel="noreferrer"
+        >
+          <span className="pmAppBannerTitle">🚀 KRIPTO Predict Terminal</span>
+          <span className="pmAppBannerDesc">
+            Trade with just an email — no wallet or gas needed. Open the
+            terminal →
+          </span>
+        </a>
+      )}
       <div className="pmToolbar">
         <input
           className="pmSearch"
@@ -165,7 +179,7 @@ export function PredictionMarkets() {
               </div>
               <a
                 className="pmTrade"
-                href={polymarketEventUrl(ev.slug)}
+                href={polymarketTradeUrl(ev.slug)}
                 target="_blank"
                 rel="noreferrer"
               >

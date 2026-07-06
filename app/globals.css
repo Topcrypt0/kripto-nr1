@@ -788,3 +788,17 @@ code { background: rgba(255, 255, 255, .1); padding: 1px 5px; border-radius: 5px
   font-family: 'JetBrains Mono', monospace; font-size: 12px;
   background: rgba(255,255,255,.07); padding: 1px 6px; border-radius: 6px;
 }
+
+/* predict trading-app banner */
+.pmAppBanner {
+  display: flex; flex-direction: column; gap: 4px; padding: 16px 20px; margin-bottom: 14px;
+  border-radius: 18px; text-decoration: none;
+  border: 1px solid rgba(245,181,10,.4);
+  background:
+    radial-gradient(420px 120px at 12% 0%, rgba(255,106,82,.18), transparent 70%),
+    linear-gradient(180deg, rgba(245,181,10,.1), rgba(245,181,10,.03));
+  transition: border-color .15s ease, transform .15s ease;
+}
+.pmAppBanner:hover { border-color: rgba(245,181,10,.7); transform: translateY(-2px); }
+.pmAppBannerTitle { font-weight: 800; font-size: 15px; color: #ffd98a; }
+.pmAppBannerDesc { font-size: 12.5px; color: #c3cdef; }

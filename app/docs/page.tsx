@@ -81,8 +81,18 @@ export default function DocsPage() {
           <a href="https://polymarket.com" target="_blank" rel="noreferrer">
             Polymarket
           </a>{" "}
-          prediction markets. Trading happens on Polymarket itself — the
-          &quot;Trade&quot; button opens the market in a new tab.
+          prediction markets. The &quot;Trade&quot; button opens the KRIPTO
+          Predict terminal (
+          <a
+            href="https://github.com/Topcrypt0/kripto-polymarket-app"
+            target="_blank"
+            rel="noreferrer"
+          >
+            open source
+          </a>
+          ) where you can trade with just an email login — a gasless smart
+          wallet is created for you automatically; orders execute on
+          Polymarket&apos;s order book.
         </p>
       </section>
 
