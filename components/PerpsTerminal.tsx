@@ -117,6 +117,11 @@ export function PerpsTerminal() {
   const [leverage, setLeverage] = useState<string>("");
   const [curLeverage, setCurLeverage] = useState<number | null>(null);
   const [state, setState] = useState<ClearinghouseStateResponse | null>(null);
+  // Unified-account mode (HL merges spot & perps into one balance): the
+  // classic perps clearinghouse then reports 0, and the real tradable
+  // balance lives in the spot state — read both to show the truth.
+  const [abstraction, setAbstraction] = useState<string>("default");
+  const [spotUsdc, setSpotUsdc] = useState<number>(0);
   const [orders, setOrders] = useState<FrontendOpenOrdersResponse>([]);
   const [book, setBook] = useState<L2BookResponse | null>(null);
   const [busy, setBusy] = useState(false);
@@ -162,6 +167,17 @@ export function PerpsTerminal() {
     info
       .clearinghouseState({ user: address })
       .then(setState)
+      .catch(() => {});
+    info
+      .userAbstraction({ user: address })
+      .then((mode) => setAbstraction(String(mode)))
+      .catch(() => {});
+    info
+      .spotClearinghouseState({ user: address })
+      .then((spot) => {
+        const usdc = spot.balances?.find((b) => b.coin === "USDC");
+        setSpotUsdc(usdc ? Number(usdc.total) - Number(usdc.hold) : 0);
+      })
       .catch(() => {});
     info
       .frontendOpenOrders({ user: address })
@@ -225,7 +241,12 @@ export function PerpsTerminal() {
 
   const positions = state?.assetPositions ?? [];
   const withdrawable = Number(state?.withdrawable ?? 0);
-  const accountValue = Number(state?.marginSummary?.accountValue ?? 0);
+  const perpsValue = Number(state?.marginSummary?.accountValue ?? 0);
+  // Unified account: spot USDC doubles as perps margin, so count it in.
+  const isUnified =
+    abstraction === "unifiedAccount" || abstraction === "portfolioMargin";
+  const availableToTrade = withdrawable + (isUnified ? spotUsdc : 0);
+  const accountValue = perpsValue + (isUnified ? spotUsdc : 0);
   const arbUsdcNum = arbUsdc !== null ? Number(formatUnits(arbUsdc, 6)) : null;
   const needsFunding = isConnected && state !== null && accountValue <= 0;
 
@@ -588,12 +609,14 @@ export function PerpsTerminal() {
           {isConnected && (
             <>
               <div className="hlPosRow">
-                <span className="pMuted">Account value</span>
+                <span className="pMuted">
+                  Account value{isUnified ? " (unified)" : ""}
+                </span>
                 <span>{fmtUsd(accountValue)}</span>
               </div>
               <div className="hlPosRow">
-                <span className="pMuted">Withdrawable</span>
-                <span>{fmtUsd(withdrawable)}</span>
+                <span className="pMuted">Available to trade</span>
+                <span>{fmtUsd(availableToTrade)}</span>
               </div>
 
               <div className="hlLabel" style={{ marginTop: 14 }}>
@@ -663,8 +686,10 @@ export function PerpsTerminal() {
           {isConnected && (
             <div className="hlBalRow">
               <span className="hlStatK">Trading balance</span>
-              <span className={`hlBalV ${withdrawable > 0 ? "pGreen" : "pRed"}`}>
-                {fmtUsd(withdrawable)}
+              <span
+                className={`hlBalV ${availableToTrade > 0 ? "pGreen" : "pRed"}`}
+              >
+                {fmtUsd(availableToTrade)}
               </span>
             </div>
           )}

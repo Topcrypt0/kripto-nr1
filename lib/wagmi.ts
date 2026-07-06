@@ -1,6 +1,81 @@
 import { createClient } from "viem";
 import { fallback, http, cookieStorage, createConfig, createStorage } from "wagmi";
-import { arbitrum, base, baseSepolia } from "wagmi/chains";
+import {
+  abstract,
+  arbitrum,
+  aurora,
+  avalanche,
+  base,
+  baseSepolia,
+  berachain,
+  blast,
+  bsc,
+  celo,
+  cronos,
+  fantom,
+  fraxtal,
+  gnosis,
+  hyperEvm,
+  ink,
+  linea,
+  mainnet,
+  mantle,
+  metis,
+  mode,
+  moonbeam,
+  moonriver,
+  opBNB,
+  optimism,
+  polygon,
+  polygonZkEvm,
+  scroll,
+  sei,
+  soneium,
+  sonic,
+  taiko,
+  unichain,
+  worldchain,
+  zksync,
+} from "wagmi/chains";
+
+// Every EVM chain the swap/bridge aggregator can execute from. Statically
+// registered so wallet chain-switching ("Chain not configured" otherwise)
+// works deterministically — no runtime chain-list fetch to race against.
+const AGGREGATOR_CHAINS = [
+  mainnet,
+  arbitrum,
+  optimism,
+  polygon,
+  bsc,
+  avalanche,
+  gnosis,
+  fantom,
+  aurora,
+  celo,
+  cronos,
+  linea,
+  mantle,
+  metis,
+  mode,
+  moonbeam,
+  moonriver,
+  opBNB,
+  polygonZkEvm,
+  scroll,
+  sei,
+  sonic,
+  zksync,
+  blast,
+  fraxtal,
+  taiko,
+  unichain,
+  worldchain,
+  ink,
+  soneium,
+  abstract,
+  berachain,
+  hyperEvm,
+] as const;
 import { baseAccount, injected } from "wagmi/connectors";
 import { farcasterMiniApp } from "@farcaster/miniapp-wagmi-connector";
 import { Attribution } from "ox/erc8021";
@@ -39,8 +114,11 @@ export const config = createConfig({
   // The active chain goes first: wagmi uses the first chain as the default for
   // reads when no wallet is connected (otherwise a logged-out visitor would
   // query the wrong network and see no bankroll/promo data).
-  // Arbitrum is included for the Hyperliquid USDC deposit flow on /perps.
-  chains: useTestnet ? [baseSepolia, base, arbitrum] : [base, baseSepolia, arbitrum],
+  // Base first (lottery default), then baseSepolia (testnet), then every
+  // aggregator chain (Arbitrum among them powers the Hyperliquid deposits).
+  chains: useTestnet
+    ? [baseSepolia, base, ...AGGREGATOR_CHAINS]
+    : [base, baseSepolia, ...AGGREGATOR_CHAINS],
   connectors,
   // A client FACTORY instead of a static `transports` map: the swap/bridge
   // aggregator syncs the full LI.FI chain list into this config at runtime
