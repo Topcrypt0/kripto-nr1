@@ -88,9 +88,12 @@ export function PerpsTerminal() {
 
   // Hyperliquid L1 actions are verified by recovering an ECDSA signer, so
   // only plain EOA wallets (MetaMask, Rabby, …) can trade. Smart wallets
-  // (Base Account passkeys, most mini-app hosts) produce signatures HL
-  // cannot verify — warn instead of failing cryptically.
-  const isEoaWallet = connector?.id === "injected";
+  // (Base Account passkeys, mini-app host wallets) produce signatures HL
+  // cannot verify — warn instead of failing cryptically. Detection is a
+  // DENYLIST of known smart-wallet connectors: browser extensions arrive
+  // under many ids ("injected", "io.metamask", "io.rabby", …) and are EOAs.
+  const SMART_WALLET_IDS = ["baseAccount", "coinbaseWalletSDK", "farcaster"];
+  const isEoaWallet = connector ? !SMART_WALLET_IDS.includes(connector.id) : true;
 
   const info = useMemo(
     () => new InfoClient({ transport: new HttpTransport() }),
@@ -618,6 +621,22 @@ export function PerpsTerminal() {
                 <span className="pMuted">Available to trade</span>
                 <span>{fmtUsd(availableToTrade)}</span>
               </div>
+              {spotUsdc > 0 && (
+                <div className="hlPosRow">
+                  <span className="pMuted">Spot USDC</span>
+                  <span>
+                    {fmtUsd(spotUsdc)}
+                    {isUnified ? " (counts as margin)" : ""}
+                  </span>
+                </div>
+              )}
+              {!isUnified && spotUsdc > 0 && availableToTrade <= 0 && (
+                <div className="hlNote">
+                  Your USDC sits on the Spot balance. On app.hyperliquid.xyz
+                  either enable Unified account mode or transfer Spot → Perps
+                  to trade with it.
+                </div>
+              )}
 
               <div className="hlLabel" style={{ marginTop: 14 }}>
                 Open positions
