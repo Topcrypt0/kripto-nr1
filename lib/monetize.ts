@@ -51,10 +51,17 @@ export const POLYMARKET_APP_URL = (
   process.env.NEXT_PUBLIC_POLYMARKET_APP_URL ?? ""
 ).replace(/\/+$/, "");
 
-export const POLYMARKET_REF = process.env.NEXT_PUBLIC_POLYMARKET_REF ?? "";
+/** Polymarket referral code — appended as ?r= to every trade link. */
+export const POLYMARKET_REF =
+  process.env.NEXT_PUBLIC_POLYMARKET_REF ?? "kripto";
 
+/**
+ * Trade buttons deep-link to the exact market on polymarket.com carrying
+ * our referral code. (The self-hosted terminal, when deployed, is promoted
+ * via its own banner — see POLYMARKET_APP_URL — but per-market deep links
+ * always go to Polymarket, which supports them reliably.)
+ */
 export function polymarketTradeUrl(slug: string): string {
-  if (POLYMARKET_APP_URL) return POLYMARKET_APP_URL;
   const base = `https://polymarket.com/event/${slug}`;
-  return POLYMARKET_REF ? `${base}?via=${POLYMARKET_REF}` : base;
+  return POLYMARKET_REF ? `${base}?r=${POLYMARKET_REF}` : base;
 }
