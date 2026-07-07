@@ -19,8 +19,10 @@ import {
   type L2BookResponse,
   type MetaAndAssetCtxsResponse,
 } from "@nktkas/hyperliquid";
-import { HL_BUILDER, HL_BUILDER_FEE } from "@/lib/monetize";
+import { HL_BUILDER, HL_BUILDER_FEE, HL_REF_CODE } from "@/lib/monetize";
 import { AGENT_NAME, agentAccount, resetAgentKey } from "@/lib/hlAgent";
+import { appUrl } from "@/lib/miniapp";
+import { shareCard } from "@/lib/share";
 import { PerpsChart } from "@/components/PerpsChart";
 
 type Market = {
@@ -176,10 +178,22 @@ export function PerpsTerminal() {
         agentName: AGENT_NAME,
       });
     }
-    return new ExchangeClient({
+    const agentExchange = new ExchangeClient({
       transport: new HttpTransport(),
       wallet: agent,
     });
+    // Attach our Hyperliquid referral code for users who don't have one yet
+    // (10% of their fees). Once per address; fails silently if already set.
+    try {
+      const flag = `kr1_hl_ref_${address.toLowerCase()}`;
+      if (HL_REF_CODE && !localStorage.getItem(flag)) {
+        await agentExchange.setReferrer({ code: HL_REF_CODE }).catch(() => {});
+        localStorage.setItem(flag, "1");
+      }
+    } catch {
+      /* ignore */
+    }
+    return agentExchange;
   }, [address, exchange, info]);
 
   const [markets, setMarkets] = useState<Market[]>([]);
@@ -199,6 +213,15 @@ export function PerpsTerminal() {
   const [spotUsdc, setSpotUsdc] = useState<number>(0);
   const [orders, setOrders] = useState<FrontendOpenOrdersResponse>([]);
   const [book, setBook] = useState<L2BookResponse | null>(null);
+  const [marketsOpen, setMarketsOpen] = useState(false);
+  const [sharePos, setSharePos] = useState<{
+    coin: string;
+    side: "long" | "short";
+    lev: string;
+    pnl: string;
+    entry: string;
+    mark: string;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   const [rowBusy, setRowBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -602,15 +625,21 @@ export function PerpsTerminal() {
 
   return (
     <div className="hlLayout">
-      {/* --- markets --- */}
-      <div className="pPanel">
-        <div style={{ padding: "10px 12px" }}>
+      {/* --- markets drawer (opens on demand, keeps the chart wide) --- */}
+      {marketsOpen && (
+        <div className="hlDrawerBack" onClick={() => setMarketsOpen(false)} />
+      )}
+      <div className={`hlDrawer${marketsOpen ? " hlDrawerOpen" : ""}`}>
+        <div style={{ padding: "10px 12px", display: "flex", gap: 8 }}>
           <input
             className="hlInput"
             placeholder="Search markets…"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           />
+          <button className="hlMiniBtn" onClick={() => setMarketsOpen(false)}>
+            ✕
+          </button>
         </div>
         <div className="hlList">
           {shown.length === 0 && <div className="pLoading">Loading…</div>}
@@ -626,6 +655,7 @@ export function PerpsTerminal() {
                 onClick={() => {
                   setSelected(m.coin);
                   setLimitPx("");
+                  setMarketsOpen(false);
                 }}
               >
                 <span className="hlCoin">
@@ -646,6 +676,13 @@ export function PerpsTerminal() {
       {/* --- selected market: stats, chart, account --- */}
       <div className="pPanel">
         <div className="hlHead">
+          <button
+            className="hlMarketsBtn"
+            onClick={() => setMarketsOpen(true)}
+            title="All markets"
+          >
+            ☰ Markets
+          </button>
           <div className="hlStat">
             <span className="hlStatK">{market?.coin ?? "—"}-PERP</span>
             <span className={`hlBigPx ${chg >= 0 ? "pGreen" : "pRed"}`}>
@@ -736,18 +773,38 @@ export function PerpsTerminal() {
                 const pos = p.position;
                 const szi = Number(pos.szi);
                 const pnl = Number(pos.unrealizedPnl);
+                const entryPx = Number(pos.entryPx ?? 0);
+                const margin = Number(pos.marginUsed ?? 0);
+                const roe = margin > 0 ? (pnl / margin) * 100 : 0;
+                const posLev = pos.leverage?.value;
+                const mkPx = markets.find((m) => m.coin === pos.coin)?.markPx;
                 return (
                   <div className="hlPosRow" key={pos.coin}>
                     <span className={szi >= 0 ? "pGreen" : "pRed"}>
                       {szi >= 0 ? "LONG" : "SHORT"} {pos.coin}
                     </span>
                     <span>
-                      {Math.abs(szi)} @ {fmtPx(Number(pos.entryPx ?? 0))}
+                      {Math.abs(szi)} @ {fmtPx(entryPx)}
                     </span>
                     <span className={pnl >= 0 ? "pGreen" : "pRed"}>
                       {pnl >= 0 ? "+" : ""}
                       {pnl.toFixed(2)}$
                     </span>
+                    <button
+                      className="hlMiniBtn hlShareBtn"
+                      onClick={() =>
+                        setSharePos({
+                          coin: pos.coin,
+                          side: szi >= 0 ? "long" : "short",
+                          lev: posLev ? String(posLev) : "",
+                          pnl: `${roe >= 0 ? "+" : ""}${roe.toFixed(1)}%`,
+                          entry: fmtPx(entryPx),
+                          mark: mkPx ? fmtPx(mkPx) : "",
+                        })
+                      }
+                    >
+                      Share
+                    </button>
                     <button
                       className="hlMiniBtn"
                       disabled={rowBusy === `close:${pos.coin}` || !exchange}
@@ -960,20 +1017,37 @@ export function PerpsTerminal() {
             </div>
           </div>
 
-          <div className="hlField">
-            <label className="hlLabel">Est. size</label>
-            <div className="hlInput" style={{ opacity: 0.8 }}>
-              {market && Number(usdSize) > 0
-                ? `${formatSz(
-                    Number(usdSize) /
-                      (orderType === "limit" && Number(limitPx) > 0
-                        ? Number(limitPx)
-                        : market.markPx),
-                    market.szDecimals,
-                  )} ${market.coin}`
-                : "—"}
+          {market && Number(usdSize) > 0 && (
+            <div className="hlMath">
+              {(() => {
+                const px =
+                  orderType === "limit" && Number(limitPx) > 0
+                    ? Number(limitPx)
+                    : market.markPx;
+                const effLev = Math.max(
+                  1,
+                  Number(leverage) > 0 ? Number(leverage) : (curLeverage ?? 1),
+                );
+                const notional = Number(usdSize);
+                const margin = notional / effLev;
+                return (
+                  <>
+                    <div className="hlMathRow">
+                      <span>You pay (margin)</span>
+                      <b>${margin.toFixed(2)}</b>
+                    </div>
+                    <div className="hlMathRow">
+                      <span>Position size ({effLev}×)</span>
+                      <b>
+                        ${notional.toFixed(2)} ={" "}
+                        {formatSz(notional / px, market.szDecimals)} {market.coin}
+                      </b>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
-          </div>
+          )}
 
           <button
             className="hlSubmit"
@@ -1003,6 +1077,82 @@ export function PerpsTerminal() {
           </p>
         </div>
       </div>
+
+      {/* --- share position card --- */}
+      {sharePos && (
+        <div className="shareBack" onClick={() => setSharePos(null)}>
+          <div className="shareModal" onClick={(e) => e.stopPropagation()}>
+            {(() => {
+              const refLink = `${appUrl()}/?ref=${address ?? ""}`;
+              const cardImg = `${appUrl()}/api/pnl-card?${new URLSearchParams({
+                coin: sharePos.coin,
+                side: sharePos.side,
+                lev: sharePos.lev,
+                pnl: sharePos.pnl,
+                entry: sharePos.entry,
+                mark: sharePos.mark,
+                ref: address ?? "",
+              }).toString()}`;
+              const text = `${sharePos.side === "long" ? "Long" : "Short"} $${sharePos.coin} ${sharePos.lev ? sharePos.lev + "×" : ""} → ${sharePos.pnl} on KRIPTO NR.1 🚀`;
+              const tweet = `https://twitter.com/intent/tweet?${new URLSearchParams({ text: `${text}\n${refLink}` }).toString()}`;
+              return (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img className="shareImg" src={cardImg} alt="PnL card" />
+                  <div className="shareBtns">
+                    <a
+                      className="pmChip"
+                      href={cardImg}
+                      download={`kripto-nr1-${sharePos.coin}.png`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      ⬇ Save image
+                    </a>
+                    <button
+                      className="pmChip"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(refLink);
+                          setMsg({ ok: true, text: "Referral link copied ✅" });
+                        } catch {
+                          /* ignore */
+                        }
+                      }}
+                    >
+                      🔗 Copy link
+                    </button>
+                    <a
+                      className="pmChip"
+                      href={tweet}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      𝕏 Share on X
+                    </a>
+                    <button
+                      className="pmChip"
+                      onClick={() => shareCard(cardImg, text, refLink)}
+                    >
+                      📤 Share…
+                    </button>
+                    <button
+                      className="pmChip"
+                      onClick={() => setSharePos(null)}
+                    >
+                      ✕ Close
+                    </button>
+                  </div>
+                  <div className="hlNote" style={{ padding: "0 4px" }}>
+                    Friends who open your link get a FREE rocket launch in the
+                    lottery — and you earn +1 free launch per invite.
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

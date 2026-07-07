@@ -24,15 +24,36 @@ const INTERVAL_MS: Record<Interval, number> = {
 const CANDLES = 200;
 const REFRESH_MS = 15_000;
 
+type ChartMode = "rocket" | "tradingview";
+const MODE_KEY = "kr1_chart_mode";
+
 export function PerpsChart({ coin }: { coin: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const [interval, setIntervalKey] = useState<Interval>("1h");
   const [empty, setEmpty] = useState(false);
+  const [mode, setMode] = useState<ChartMode>("rocket");
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(MODE_KEY);
+      if (saved === "tradingview") setMode("tradingview");
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  const switchMode = (m: ChartMode) => {
+    setMode(m);
+    try {
+      localStorage.setItem(MODE_KEY, m);
+    } catch {
+      /* ignore */
+    }
+  };
 
   useEffect(() => {
     const el = containerRef.current;
-    if (!el || !coin) return;
+    if (!el || !coin || mode !== "rocket") return;
 
     const chart = createChart(el, {
       autoSize: true,
@@ -110,23 +131,60 @@ export function PerpsChart({ coin }: { coin: string }) {
       chart.remove();
       chartRef.current = null;
     };
-  }, [coin, interval]);
+  }, [coin, interval, mode]);
+
+  // Full TradingView chart (indicators, drawing tools) via the public embed.
+  // Hyperliquid market data is listed on TradingView; users can also switch
+  // the symbol inside the widget.
+  const tvUrl =
+    `https://s.tradingview.com/widgetembed/?symbol=${encodeURIComponent(`HYPERLIQUID:${coin}USD`)}` +
+    `&interval=60&theme=dark&style=1&locale=en&withdateranges=1` +
+    `&hide_side_toolbar=0&allow_symbol_change=1&save_image=1` +
+    `&backgroundColor=%230a0f26&studies=%5B%5D`;
 
   return (
     <div className="hlChartWrap">
       <div className="hlChartBar">
-        {INTERVALS.map((i) => (
-          <button
-            key={i}
-            className={`hlTf${i === interval ? " hlTfOn" : ""}`}
-            onClick={() => setIntervalKey(i)}
-          >
-            {i}
-          </button>
-        ))}
+        {mode === "rocket" &&
+          INTERVALS.map((i) => (
+            <button
+              key={i}
+              className={`hlTf${i === interval ? " hlTfOn" : ""}`}
+              onClick={() => setIntervalKey(i)}
+            >
+              {i}
+            </button>
+          ))}
+        <span className="hlChartSpacer" />
+        <button
+          className={`hlTf${mode === "rocket" ? " hlTfOn" : ""}`}
+          onClick={() => switchMode("rocket")}
+          title="Fast built-in chart with live Hyperliquid data"
+        >
+          🚀 Rocket
+        </button>
+        <button
+          className={`hlTf${mode === "tradingview" ? " hlTfOn" : ""}`}
+          onClick={() => switchMode("tradingview")}
+          title="Full TradingView chart: indicators & drawing tools"
+        >
+          📊 TradingView
+        </button>
       </div>
-      <div ref={containerRef} className="hlChart" />
-      {empty && <div className="pLoading">No chart data for {coin}.</div>}
+      {mode === "rocket" ? (
+        <>
+          <div ref={containerRef} className="hlChart" />
+          {empty && <div className="pLoading">No chart data for {coin}.</div>}
+        </>
+      ) : (
+        <iframe
+          key={coin}
+          src={tvUrl}
+          className="hlTvFrame"
+          title={`${coin} TradingView chart`}
+          allowFullScreen
+        />
+      )}
     </div>
   );
 }

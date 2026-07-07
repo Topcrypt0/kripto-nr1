@@ -32,6 +32,14 @@ export const HL_BUILDER_FEE = Number(
 export const HL_BUILDER_FEE_PCT = `${(HL_BUILDER_FEE / 1000).toFixed(3)}%`;
 
 /**
+ * Hyperliquid referral code (create at app.hyperliquid.xyz → Referrals).
+ * Users who trade through the Perps tab and have no referrer yet get it
+ * attached automatically — 10% of their taker fees flow to the code owner,
+ * on top of the builder fee.
+ */
+export const HL_REF_CODE = process.env.NEXT_PUBLIC_HL_REF_CODE ?? "KRIPTO";
+
+/**
  * Polymarket revenue. Preferred path: our own trading app
  * (github.com/Topcrypt0/kripto-polymarket-app) — a Polymarket CLOB frontend
  * with builder order attribution (revenue on every order), email login via

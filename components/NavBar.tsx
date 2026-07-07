@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
+import { captureReferrer } from "@/lib/referral";
 
 const TABS = [
   { href: "/swap", label: "Swap", emoji: "🔁" },
@@ -25,6 +26,12 @@ export function NavBar() {
   // Avoid SSR/client hydration mismatch on wallet state.
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  // Platform-wide referral capture: any page visited with ?ref=<addr>
+  // remembers the inviter (used by the lottery's free launches and the
+  // share-card links from every tab).
+  useEffect(() => {
+    captureReferrer(address);
+  }, [address]);
 
   const handleConnect = () => {
     const injected = connectors.find((c) => c.id === "injected");
