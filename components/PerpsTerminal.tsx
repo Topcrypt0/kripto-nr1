@@ -20,6 +20,7 @@ import {
   type MetaAndAssetCtxsResponse,
 } from "@nktkas/hyperliquid";
 import { HL_BUILDER, HL_BUILDER_FEE } from "@/lib/monetize";
+import { AGENT_NAME, agentAccount, resetAgentKey } from "@/lib/hlAgent";
 import { PerpsChart } from "@/components/PerpsChart";
 
 type Market = {
@@ -58,15 +59,33 @@ const arbClient = createPublicClient({
 // ids ("injected", "io.metamask", "io.rabby", …), so detection is a denylist.
 const SMART_WALLET_IDS = ["baseAccount", "coinbaseWalletSDK", "farcaster"];
 
+/** Best human-readable text for an unknown thrown value. */
+function errText(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "object" && err !== null) {
+    const o = err as Record<string, unknown>;
+    for (const k of ["shortMessage", "message", "details", "reason"]) {
+      if (typeof o[k] === "string" && o[k]) return o[k] as string;
+    }
+    try {
+      return JSON.stringify(err).slice(0, 200);
+    } catch {
+      return String(err);
+    }
+  }
+  return String(err ?? "");
+}
+
 /** Unwrap nested `cause` chains so the real wallet/API error is visible. */
 function rootCause(e: unknown): string {
   let err: unknown = e;
-  let text = err instanceof Error ? err.message : String(err);
-  for (let i = 0; i < 5 && err instanceof Error && err.cause; i++) {
-    err = err.cause;
-    const causeText =
-      err instanceof Error ? err.message : String(err ?? "");
-    if (causeText) text = causeText;
+  let text = errText(err);
+  for (let i = 0; i < 6; i++) {
+    const next = (err as { cause?: unknown } | null)?.cause;
+    if (next === undefined || next === null) break;
+    err = next;
+    const t = errText(err);
+    if (t) text = t;
   }
   return text.split("\n")[0];
 }
@@ -113,6 +132,10 @@ export function PerpsTerminal() {
     () => new InfoClient({ transport: new HttpTransport() }),
     [],
   );
+  // Master client (browser wallet) — only for the two one-time approvals:
+  // approveAgent and approveBuilderFee. Both are "user-signed" actions whose
+  // EIP-712 domain uses the wallet's CURRENT chain, so any EOA wallet on any
+  // network signs them fine.
   const exchange = useMemo(
     () =>
       walletClient
@@ -123,6 +146,41 @@ export function PerpsTerminal() {
         : null,
     [walletClient],
   );
+
+  /**
+   * Trading client signed by the local agent key (the official HL UI works
+   * the same way): after a one-time approveAgent signature, orders execute
+   * with no wallet popups — and no wallet chain restrictions, since HL L1
+   * actions are signed off-chain by the agent.
+   */
+  const ensureAgentExchange = useCallback(async (): Promise<ExchangeClient> => {
+    if (!address || !exchange) throw new Error("Connect a wallet first.");
+    const agent = agentAccount(address);
+    const approved = await info
+      .extraAgents({ user: address })
+      .then((list) =>
+        list.some(
+          (a) =>
+            a.address.toLowerCase() === agent.address.toLowerCase() &&
+            (a.validUntil == null || a.validUntil > Date.now() + 3_600_000),
+        ),
+      )
+      .catch(() => false);
+    if (!approved) {
+      setMsg({
+        ok: true,
+        text: "One-time signature: enabling fast trading for this wallet…",
+      });
+      await exchange.approveAgent({
+        agentAddress: agent.address,
+        agentName: AGENT_NAME,
+      });
+    }
+    return new ExchangeClient({
+      transport: new HttpTransport(),
+      wallet: agent,
+    });
+  }, [address, exchange, info]);
 
   const [markets, setMarkets] = useState<Market[]>([]);
   const [filter, setFilter] = useState("");
@@ -284,6 +342,9 @@ export function PerpsTerminal() {
           "Your wallet type can't sign Hyperliquid orders. Smart wallets (Base Account, in-app wallets) are not supported by Hyperliquid — connect a standard wallet like MetaMask or Rabby and try again.";
       } else if (/reject|denied/i.test(cause)) {
         text = "Signature request was rejected in the wallet — try again and confirm the prompt.";
+      } else if (/api wallet|agent/i.test(cause) && /does not exist|invalid|expired/i.test(cause)) {
+        if (address) resetAgentKey(address);
+        text = "Trading key re-initialized — press the button again (one confirmation signature).";
       } else if (/does not exist|insufficient/i.test(cause)) {
         text = `${cause} — make sure your Hyperliquid trading balance is funded (Deposit button above).`;
       } else if (cause && cause !== text) {
@@ -292,7 +353,7 @@ export function PerpsTerminal() {
       }
       return text;
     },
-    [connector],
+    [connector, address],
   );
 
   /** Attach the builder code when the user has approved it (approve once). */
@@ -353,7 +414,8 @@ export function PerpsTerminal() {
       const size = usd / (orderType === "limit" ? Number(limitPx) : market.markPx);
 
       const builder = await getBuilder();
-      const result = await exchange.order({
+      const agentExchange = await ensureAgentExchange();
+      const result = await agentExchange.order({
         orders: [
           {
             a: market.index,
@@ -413,7 +475,8 @@ export function PerpsTerminal() {
     setRowBusy("lev");
     setMsg(null);
     try {
-      await exchange.updateLeverage({
+      const agentExchange = await ensureAgentExchange();
+      await agentExchange.updateLeverage({
         asset: market.index,
         isCross: true,
         leverage: lev,
@@ -437,7 +500,8 @@ export function PerpsTerminal() {
         const isBuy = szi < 0; // buy back a short / sell a long
         const px = m.markPx * (isBuy ? 1.02 : 0.98);
         const builder = await getBuilder();
-        const result = await exchange.order({
+        const agentExchange = await ensureAgentExchange();
+        const result = await agentExchange.order({
           orders: [
             {
               a: m.index,
@@ -473,7 +537,8 @@ export function PerpsTerminal() {
       setRowBusy(`cancel:${oid}`);
       setMsg(null);
       try {
-        await exchange.cancel({ cancels: [{ a, o: oid }] });
+        const agentExchange = await ensureAgentExchange();
+        await agentExchange.cancel({ cancels: [{ a, o: oid }] });
         setMsg({ ok: true, text: "Order cancelled ✅" });
         loadAccount();
       } catch (e) {
