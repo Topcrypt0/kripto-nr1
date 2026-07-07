@@ -9,6 +9,7 @@ import { captureReferrer } from "@/lib/referral";
 const TABS = [
   { href: "/swap", label: "Swap", emoji: "🔁" },
   { href: "/perps", label: "Perps", emoji: "📈" },
+  { href: "/earn", label: "Earn", emoji: "🏦" },
   { href: "/predict", label: "Predict", emoji: "🔮" },
   { href: "/lottery", label: "Lottery", emoji: "🚀" },
   { href: "/docs", label: "Docs", emoji: "📄" },

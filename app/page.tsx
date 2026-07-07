@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BuyCrypto } from "@/components/BuyCrypto";
 
 const PRODUCTS = [
   {
@@ -14,6 +15,13 @@ const PRODUCTS = [
     title: "Perps",
     desc: "Perpetual futures on Hyperliquid — up to 50× leverage, CEX-grade speed, fully on-chain.",
     cta: "Long / Short",
+  },
+  {
+    href: "/earn",
+    emoji: "🏦",
+    title: "Earn (DeFi)",
+    desc: "Put stablecoins to work — passive APY on curated Morpho vaults and Aave lending. Withdraw anytime.",
+    cta: "Earn yield",
   },
   {
     href: "/predict",
@@ -48,6 +56,7 @@ export default function Home() {
             <Link href="/swap" className="pBtnPrimary">
               Start trading
             </Link>
+            <BuyCrypto />
             <Link href="/lottery" className="pBtnGhost">
               🚀 Play lottery
             </Link>

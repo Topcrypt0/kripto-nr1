@@ -74,6 +74,39 @@ export default function DocsPage() {
       </section>
 
       <section className="docsSection pPanel">
+        <h2 className="docsH2">🏦 Earn (DeFi)</h2>
+        <p className="docsP">
+          The <a href="/earn">Earn</a> tab lets you deposit USDC into
+          blue-chip yield sources on Base for passive APY:{" "}
+          <a href="https://morpho.org" target="_blank" rel="noreferrer">
+            Morpho
+          </a>{" "}
+          (Gauntlet USDC Prime vault) and{" "}
+          <a href="https://aave.com" target="_blank" rel="noreferrer">
+            Aave v3
+          </a>{" "}
+          lending. Deposits go directly into each protocol&apos;s audited
+          contracts — non-custodial, withdraw anytime. Rates are live and
+          variable; there is no KRIPTO NR.1 fee on Earn (the platform earns
+          when you fund via swap or buy crypto).
+        </p>
+      </section>
+
+      <section className="docsSection pPanel">
+        <h2 className="docsH2">💳 Buy Crypto</h2>
+        <p className="docsP">
+          The <b>Buy Crypto</b> button on the home page opens a fiat card
+          on-ramp (via{" "}
+          <a href="https://privy.io" target="_blank" rel="noreferrer">
+            Privy
+          </a>{" "}
+          + MoonPay/Coinbase) that delivers USDC or ETH straight to your
+          connected wallet on Base — so you can fund the platform with a bank
+          card without an exchange. KRIPTO NR.1 never holds your funds.
+        </p>
+      </section>
+
+      <section className="docsSection pPanel">
         <h2 className="docsH2">🔮 Predictions</h2>
         <p className="docsP">
           The <a href="/predict">Predict</a> tab shows live odds and volumes
