@@ -34,6 +34,7 @@ import { cardUrl, shareCard } from "@/lib/share";
 import { appUrl } from "@/lib/miniapp";
 import { captureReferrer, getReferrer } from "@/lib/referral";
 import { Rocket } from "@/components/Rocket";
+import { LotteryBridgeBanner } from "@/components/LotteryBridgeBanner";
 import { History, type HistoryItem } from "@/components/History";
 import { Dashboard } from "@/components/Dashboard";
 
@@ -695,6 +696,8 @@ export default function Home() {
           )}
         </div>
       </header>
+
+      <LotteryBridgeBanner />
 
       <section className="stage">
         <Rocket phase={rocketPhase} multiplier={result?.multiplier ?? null} />
