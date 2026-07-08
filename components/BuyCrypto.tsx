@@ -3,12 +3,7 @@
 import { useState } from "react";
 import { useFiatOnramp, usePrivy } from "@privy-io/react-auth";
 import { useAccount, useConnect } from "wagmi";
-import {
-  BASE_CAIP2,
-  ONRAMP_ASSETS,
-  PRIVY_APP_ID,
-  PRIVY_ONRAMP_ENV,
-} from "@/lib/privy";
+import { BASE_CAIP2, ONRAMP_ASSETS, PRIVY_APP_ID } from "@/lib/privy";
 
 /**
  * "Buy Crypto" — a fiat card on-ramp (Privy → MoonPay/Coinbase) that delivers
@@ -49,6 +44,9 @@ export function BuyCrypto({ className }: { className?: string }) {
     setNote(null);
     try {
       if (ready && !authenticated) await login();
+      // Note: `environment` is intentionally NOT passed — Privy uses the app's
+      // own mode (Production once the app is upgraded), so a stale
+      // NEXT_PUBLIC_PRIVY_ONRAMP_ENV can never cause a sandbox/prod mismatch.
       await fund({
         source: { assets: ["usd", "eur", "gbp"], defaultAsset: "usd" },
         destination: {
@@ -56,9 +54,6 @@ export function BuyCrypto({ className }: { className?: string }) {
           chain: BASE_CAIP2,
           address: to,
         },
-        // Only pin the environment when explicitly overridden; otherwise let
-        // Privy match the app's own mode.
-        ...(PRIVY_ONRAMP_ENV ? { environment: PRIVY_ONRAMP_ENV } : {}),
         defaultAmount: "50",
       });
       setNote("Payment started — funds arrive in your wallet in a few minutes.");
