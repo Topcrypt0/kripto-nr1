@@ -1,7 +1,15 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useEffect } from "react";
 import type { WidgetConfig } from "@lifi/widget";
+import { ChainType, createConfig, getChains } from "@lifi/sdk";
+import {
+  convertExtendedChain,
+  syncWagmiConfig,
+} from "@lifi/wallet-management";
+import type { Chain } from "viem";
+import { config as wagmiConfig, connectors } from "@/lib/wagmi";
 import { LIFI_FEE, LIFI_INTEGRATOR } from "@/lib/monetize";
 
 // The LI.FI widget touches window at module scope — client-only import.
@@ -54,6 +62,38 @@ const config: Partial<WidgetConfig> = {
   },
 };
 
+/**
+ * Merge LI.FI's full chain list into the app's wagmi config so the widget can
+ * switch the wallet to ANY chain LI.FI supports — including new ones not
+ * hardcoded in lib/wagmi.ts (e.g. Robinhood Chain). Runs only on the swap
+ * page (the only place it matters). Static chains stay first; extras are
+ * appended with the RPC LI.FI reports. Fails quietly if LI.FI is unreachable.
+ */
+function useSyncLifiChains() {
+  useEffect(() => {
+    let cancelled = false;
+    createConfig({ integrator: LIFI_INTEGRATOR });
+    getChains({ chainTypes: [ChainType.EVM] })
+      .then((lifiChains) => {
+        if (cancelled || !lifiChains?.length) return;
+        const ownIds = new Set<number>(wagmiConfig.chains.map((c) => c.id));
+        const extra = lifiChains
+          .filter((c) => !ownIds.has(c.id))
+          .map(convertExtendedChain);
+        if (!extra.length) return;
+        const merged = [...wagmiConfig.chains, ...extra] as [Chain, ...Chain[]];
+        syncWagmiConfig(wagmiConfig, connectors, merged);
+      })
+      .catch(() => {
+        /* LI.FI unreachable — static chains still work */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+}
+
 export function SwapWidget() {
+  useSyncLifiChains();
   return <LiFiWidget integrator={LIFI_INTEGRATOR} config={config} />;
 }
