@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { captureReferrer } from "@/lib/referral";
+import { BuyCrypto } from "@/components/BuyCrypto";
 
 const TABS = [
   { href: "/swap", label: "Swap", emoji: "🔁" },
@@ -70,16 +71,27 @@ export function NavBar() {
         ))}
       </div>
 
-      {mounted && isConnected ? (
-        <button className="pWallet" onClick={() => disconnect()} title="Disconnect">
-          <span className="pDot" />
-          {short(address)}
-        </button>
-      ) : (
-        <button className="pWallet" onClick={handleConnect} disabled={isPending}>
-          {isPending ? "Connecting…" : "Connect"}
-        </button>
-      )}
+      <div className="pNavRight">
+        <BuyCrypto className="pNavBuy" />
+        {mounted && isConnected ? (
+          <button
+            className="pWallet"
+            onClick={() => disconnect()}
+            title="Disconnect"
+          >
+            <span className="pDot" />
+            {short(address)}
+          </button>
+        ) : (
+          <button
+            className="pWallet"
+            onClick={handleConnect}
+            disabled={isPending}
+          >
+            {isPending ? "Connecting…" : "Connect"}
+          </button>
+        )}
+      </div>
     </nav>
   );
 }

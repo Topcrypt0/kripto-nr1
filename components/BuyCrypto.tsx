@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { useFiatOnramp, usePrivy } from "@privy-io/react-auth";
 import { useAccount, useConnect } from "wagmi";
-import { BASE_CAIP2, ONRAMP_ASSETS, PRIVY_APP_ID } from "@/lib/privy";
+import {
+  BASE_CAIP2,
+  ONRAMP_ASSETS,
+  PRIVY_APP_ID,
+  PRIVY_ONRAMP_ENV,
+} from "@/lib/privy";
 
 /**
  * "Buy Crypto" — a fiat card on-ramp (Privy → MoonPay/Coinbase) that delivers
@@ -51,7 +56,7 @@ export function BuyCrypto({ className }: { className?: string }) {
           chain: BASE_CAIP2,
           address: to,
         },
-        environment: "production",
+        environment: PRIVY_ONRAMP_ENV,
         defaultAmount: "50",
       });
       setNote("Payment started — funds arrive in your wallet in a few minutes.");
