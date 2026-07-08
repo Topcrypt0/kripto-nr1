@@ -35,6 +35,10 @@ const config: Partial<WidgetConfig> = {
     fee: LIFI_FEE,
   },
   appearance: "dark",
+  // Default slippage tolerance (1.5%). LI.FI's 0.5% default is too tight for
+  // thin/new routes (e.g. Robinhood Chain), causing "slippage conditions not
+  // met" at execution. Users can still tune this in the widget settings.
+  slippage: 0.015,
   // Sync form state with URL params so other pages can deep-link prefilled
   // swaps (e.g. /swap?toChain=42161&toToken=0x… from the perps funding flow).
   buildUrl: true,
