@@ -6,15 +6,16 @@ export const PRIVY_APP_ID =
 // Base chain, CAIP-2 form expected by Privy's onramp.
 export const BASE_CAIP2 = "eip155:8453" as const;
 
-// Onramp environment must match the Privy app state:
-//  - "production" when the Privy app is upgraded to Production (real money)
-//  - "sandbox"    while the app is in Development (test cards, fake money)
-// A Development app returns "Unable to get quotes" if asked for production.
-export const PRIVY_ONRAMP_ENV = (
+// Onramp environment. Leave UNSET so Privy auto-matches the app state
+// (Development app → sandbox providers, Production app → live providers);
+// forcing a value that mismatches the app state yields "Unable to get quotes".
+// Set NEXT_PUBLIC_PRIVY_ONRAMP_ENV="sandbox" | "production" only to override.
+export const PRIVY_ONRAMP_ENV: "sandbox" | "production" | undefined =
   process.env.NEXT_PUBLIC_PRIVY_ONRAMP_ENV === "sandbox"
     ? "sandbox"
-    : "production"
-) as "sandbox" | "production";
+    : process.env.NEXT_PUBLIC_PRIVY_ONRAMP_ENV === "production"
+      ? "production"
+      : undefined;
 
 // Assets a user can buy with a card, delivered straight to their wallet on Base.
 export const ONRAMP_ASSETS = {

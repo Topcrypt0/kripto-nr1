@@ -56,13 +56,21 @@ export function BuyCrypto({ className }: { className?: string }) {
           chain: BASE_CAIP2,
           address: to,
         },
-        environment: PRIVY_ONRAMP_ENV,
+        // Only pin the environment when explicitly overridden; otherwise let
+        // Privy match the app's own mode.
+        ...(PRIVY_ONRAMP_ENV ? { environment: PRIVY_ONRAMP_ENV } : {}),
         defaultAmount: "50",
       });
       setNote("Payment started — funds arrive in your wallet in a few minutes.");
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      if (!/exit|cancel|close/i.test(msg)) setNote(msg);
+      if (/quote/i.test(msg)) {
+        setNote(
+          "No card quotes available yet — the onramp provider must be enabled for this app's mode in the Privy dashboard (upgrade the app to Production for real purchases).",
+        );
+      } else if (!/exit|cancel|close/i.test(msg)) {
+        setNote(msg);
+      }
     } finally {
       setBusy(null);
     }
