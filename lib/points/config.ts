@@ -1,0 +1,279 @@
+// KRIPTO POINTS — the single source of truth for the whole reward program.
+//
+// Shared by the server (award engine) and the client (dashboard, docs), so the
+// numbers a user sees are literally the numbers the engine applies. Nothing in
+// here touches Node APIs — it is safe to import from a client component.
+
+export type PointsSource = "swap" | "bridge" | "perps" | "lottery" | "earn";
+
+export const POINT_SOURCES = [
+  "swap",
+  "bridge",
+  "perps",
+  "lottery",
+  "earn",
+] as const;
+
+/**
+ * Season key. Every storage key is namespaced with it, so starting season 2 is
+ * a one-line env change that archives (rather than deletes) season 1.
+ */
+export const SEASON =
+  process.env.NEXT_PUBLIC_POINTS_SEASON?.trim() || "s1";
+
+export type SourceRule = {
+  label: string;
+  emoji: string;
+  href: string;
+  /** Points per $1 of verified volume, below the soft cap. */
+  rate: number;
+  /**
+   * Volume (USD) per single action that earns the full rate. Everything above
+   * it earns `rate * OVERFLOW_RATE` — whales still climb, but a single
+   * mega-transaction can't own the leaderboard.
+   */
+  softCapUsd: number;
+  /** Hard ceiling of points a single action can ever be worth. */
+  maxPerAction: number;
+  /** One-time bonus the first time a user ever does this action. */
+  firstBonus: number;
+  /** Shown in the "how to earn" table. */
+  blurb: string;
+};
+
+/** Multiplier applied to the volume above a source's soft cap. */
+export const OVERFLOW_RATE = 0.25;
+
+export const SOURCES: Record<PointsSource, SourceRule> = {
+  swap: {
+    label: "Swap",
+    emoji: "🔁",
+    href: "/swap",
+    rate: 10,
+    softCapUsd: 5_000,
+    maxPerAction: 60_000,
+    firstBonus: 250,
+    blurb: "Same-chain swaps routed through the aggregator.",
+  },
+  bridge: {
+    label: "Bridge",
+    emoji: "🌉",
+    href: "/swap",
+    rate: 15,
+    softCapUsd: 5_000,
+    maxPerAction: 90_000,
+    firstBonus: 400,
+    blurb: "Cross-chain transfers — 1.5× the swap rate.",
+  },
+  perps: {
+    label: "Perps",
+    emoji: "📈",
+    href: "/perps",
+    rate: 5,
+    softCapUsd: 25_000,
+    maxPerAction: 150_000,
+    firstBonus: 500,
+    blurb: "Every Hyperliquid fill, scored on filled notional.",
+  },
+  lottery: {
+    label: "Rocket launch",
+    emoji: "🚀",
+    href: "/lottery",
+    rate: 200,
+    softCapUsd: 50,
+    maxPerAction: 1_500,
+    firstBonus: 300,
+    blurb: "Each launch — free launches count too.",
+  },
+  earn: {
+    label: "Earn deposit",
+    emoji: "🏦",
+    href: "/earn",
+    rate: 8,
+    softCapUsd: 25_000,
+    maxPerAction: 60_000,
+    firstBonus: 250,
+    blurb: "Stablecoins supplied to the Morpho / Aave vaults.",
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Referrals
+// ---------------------------------------------------------------------------
+
+/**
+ * Referral bonuses are *minted on top* — an invitee never loses points to the
+ * person who invited them. Two levels, so inviting recruiters pays off.
+ */
+export const REFERRAL_L1 = 0.1; // 10% to the direct inviter
+export const REFERRAL_L2 = 0.03; // 3% to the inviter's inviter
+
+/** One-time bonus for both sides once an invitee earns their first points. */
+export const REFERRAL_ACTIVATION_BONUS = 500;
+
+// ---------------------------------------------------------------------------
+// Daily streak
+// ---------------------------------------------------------------------------
+
+/** Extra multiplier per consecutive active day, capped by STREAK_MAX. */
+export const STREAK_STEP = 0.05;
+export const STREAK_MAX = 1.5;
+
+export function streakMultiplier(streakDays: number): number {
+  return Math.min(1 + STREAK_STEP * Math.max(0, streakDays - 1), STREAK_MAX);
+}
+
+// ---------------------------------------------------------------------------
+// Tiers
+// ---------------------------------------------------------------------------
+
+export type Tier = {
+  name: string;
+  emoji: string;
+  min: number;
+  color: string;
+  perks: string[];
+};
+
+export const TIERS: Tier[] = [
+  {
+    name: "Cadet",
+    emoji: "🪐",
+    min: 0,
+    color: "#8b97c7",
+    perks: ["Points tracking & leaderboard", "Referral link"],
+  },
+  {
+    name: "Pilot",
+    emoji: "🛰️",
+    min: 1_000,
+    color: "#5b8cff",
+    perks: ["Private Telegram group access", "Early feature drops"],
+  },
+  {
+    name: "Captain",
+    emoji: "🚀",
+    min: 10_000,
+    color: "#2fe08a",
+    perks: [
+      "Weekly token reward-pool share",
+      "Private group + alpha channel",
+      "Priority support",
+    ],
+  },
+  {
+    name: "Commander",
+    emoji: "⚡",
+    min: 50_000,
+    color: "#f5b50a",
+    perks: [
+      "Boosted reward-pool weight",
+      "Swap fee rebate",
+      "Leaderboard badge",
+    ],
+  },
+  {
+    name: "Astronaut",
+    emoji: "👨‍🚀",
+    min: 200_000,
+    color: "#ff6a52",
+    perks: [
+      "Max reward-pool weight",
+      "Guaranteed allocation whitelist",
+      "Direct line to the team",
+    ],
+  },
+  {
+    name: "Legend",
+    emoji: "👑",
+    min: 1_000_000,
+    color: "#ffd98a",
+    perks: [
+      "Everything above",
+      "Permanent OG role",
+      "Revenue-share invite",
+    ],
+  },
+];
+
+export function tierFor(points: number): Tier {
+  let current = TIERS[0];
+  for (const t of TIERS) if (points >= t.min) current = t;
+  return current;
+}
+
+export function nextTier(points: number): Tier | null {
+  return TIERS.find((t) => t.min > points) ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Reward catalogue — what points are actually *for*.
+// ---------------------------------------------------------------------------
+
+export type Reward = {
+  emoji: string;
+  title: string;
+  desc: string;
+  /** Points needed, or null when it is a tier-gated perk rather than a spend. */
+  cost: number | null;
+  kind: "access" | "pool" | "perk";
+};
+
+export const REWARDS: Reward[] = [
+  {
+    emoji: "🔒",
+    title: "Private group access",
+    desc: "Invite to the closed KRIPTO NR.1 group — trade ideas, alpha, direct line to the team.",
+    cost: 1_000,
+    kind: "access",
+  },
+  {
+    emoji: "💰",
+    title: "Weekly token reward pool",
+    desc: "Every week a token pool is split between holders pro-rata to points earned that week.",
+    cost: 10_000,
+    kind: "pool",
+  },
+  {
+    emoji: "🎟️",
+    title: "Free rocket launches",
+    desc: "Redeem points for free launches — win up to 0.01 ETH with zero stake.",
+    cost: 2_500,
+    kind: "perk",
+  },
+  {
+    emoji: "🏷️",
+    title: "Swap fee rebate",
+    desc: "Burn points to get the platform swap fee rebated on your next volume tier.",
+    cost: 25_000,
+    kind: "perk",
+  },
+  {
+    emoji: "🥇",
+    title: "Allocation whitelist",
+    desc: "Guaranteed spot in the token generation event / partner allocations.",
+    cost: 200_000,
+    kind: "access",
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Scoring
+// ---------------------------------------------------------------------------
+
+/** Points for one verified action of `source` worth `volumeUsd`. */
+export function pointsForVolume(
+  source: PointsSource,
+  volumeUsd: number,
+): number {
+  const rule = SOURCES[source];
+  if (!Number.isFinite(volumeUsd) || volumeUsd <= 0) return 0;
+  const full = Math.min(volumeUsd, rule.softCapUsd);
+  const over = Math.max(0, volumeUsd - rule.softCapUsd);
+  const raw = full * rule.rate + over * rule.rate * OVERFLOW_RATE;
+  return Math.min(Math.round(raw), rule.maxPerAction);
+}
+
+export function formatPoints(n: number): string {
+  return Math.round(n).toLocaleString("en-US");
+}

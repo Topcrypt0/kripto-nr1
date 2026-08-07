@@ -8,6 +8,7 @@
 | Perps | `/perps` | [Hyperliquid](https://hyperliquid.xyz) L1 | Builder-code fee on every order (`NEXT_PUBLIC_HL_BUILDER_FEE`, default 0.025% of notional) |
 | Predictions | `/predict` | [Polymarket](https://polymarket.com) Gamma API | Referral / builder-program code on trade links (`NEXT_PUBLIC_POLYMARKET_REF`) |
 | Rocket Lottery | `/lottery` | Own Solidity contract on Base | House edge ≈ 2% |
+| Points & Rewards | `/points` | Own verified points engine | Retention loop — points are earned on the volume that pays every fee above |
 
 The lottery keeps its own dedicated URL (`/lottery`) — the **Base App Mini App
 manifest and embed point straight to it**, so the game keeps working inside
@@ -81,6 +82,10 @@ npm run dev                     # http://localhost:3000
 | `NEXT_PUBLIC_HL_BUILDER_FEE`   | `25`                   | Builder fee in tenths of bps (25 = 0.025%)     |
 | `NEXT_PUBLIC_POLYMARKET_REF`   | `kriptonr1`            | Polymarket referral/partner code               |
 | `BASE_API_KEY` (secret)        | `bdev_…`               | base.dev API key — optional, secret            |
+| `KV_REST_API_URL` (secret)     | `https://…upstash.io`  | Points storage (Vercel KV / Upstash REST)      |
+| `KV_REST_API_TOKEN` (secret)   | `AX…`                  | Points storage token                           |
+| `NEXT_PUBLIC_POINTS_SEASON`    | `s1`                   | Points season key — bump to reset the board    |
+| `POINTS_RPC_URL` (secret)      | `https://…`            | Base RPC used to verify launches/deposits      |
 
 ## Base Mini App / builder dashboard
 
@@ -97,6 +102,66 @@ npm run dev                     # http://localhost:3000
 2. Add the env vars above in **Project Settings → Environment Variables**.
 3. Deploy. Verify the domain in the Base Developers Portal (the `base:app_id`
    meta tag is already in `app/layout.tsx`).
+
+## ✨ Points & rewards
+
+A retention loop on top of every tab: **swap, bridge, perps, Earn and the
+rocket all pay points by USD volume**, points rank you on a public leaderboard,
+and points convert into private-group access, weekly token reward pools, free
+launches and fee rebates.
+
+### Nothing is self-reported
+
+The browser only says *"this wallet did something, here is the tx hash"*. The
+server re-derives the truth before minting a point:
+
+| Action | Verified against | Volume used |
+| --- | --- | --- |
+| Swap / Bridge | LI.FI status API (`status=DONE`, `fromAddress` must match) | Larger of the sending / receiving leg in USD |
+| Rocket launch | Base receipt → the contract's own `Played` / `FreePlayed` event | Stake in ETH → USD |
+| Earn deposit | Base receipt → USDC `Transfer` out of the user's wallet | Deposit size (withdrawals score nothing) |
+| Perps | Hyperliquid `userFillsByTime` for that wallet | Filled notional, per fill |
+
+Every action carries a stable event id (tx hash, or Hyperliquid's `tid`) that is
+reserved exactly once per season, so replaying a request awards nothing.
+
+### The rules (all in `lib/points/config.ts`)
+
+- **Rates** — swap 10 pts/$1, bridge 15, perps 5, Earn 8, rocket 200. Volume
+  above a per-action soft cap still counts, at 25% of the rate, so one whale
+  transaction can't own the board. Each product pays a one-time first-use bonus.
+- **Referrals** — you earn **10%** of every point your invitees make and **3%**
+  from the people *they* invite. Minted on top: an invitee never loses points.
+  Both sides get +500 when an invitee first earns. The inviter is captured from
+  the existing `?ref=<address>` link, bound once, and never re-parented.
+- **Streaks** — trading on consecutive days adds +5%/day up to ×1.5.
+- **Tiers** — Cadet → Pilot → Captain → Commander → Astronaut → Legend, each
+  unlocking a perk set rendered straight from the same config the engine scores
+  with, so the dashboard can never drift from the rules.
+
+### Storage
+
+Points live in any Upstash-compatible REST KV (`KV_REST_API_URL` +
+`KV_REST_API_TOKEN` — Vercel KV sets both for you), talked to over plain
+`fetch`, so the project keeps its zero-extra-dependency footprint. **Without
+those vars the engine falls back to an in-memory store** — fine for `npm run
+dev`, but totals reset on redeploy and the dashboard shows a warning saying so.
+Bump `NEXT_PUBLIC_POINTS_SEASON` to archive a season and start everyone at zero.
+
+### Where it lives
+
+| File | Role |
+| --- | --- |
+| `lib/points/config.ts` | Rates, caps, tiers, rewards — shared by server and UI |
+| `lib/points/verify.ts` | Per-source verification (the trust boundary) |
+| `lib/points/engine.ts` | Awarding, idempotency, streaks, referral tree |
+| `lib/points/store.ts` | KV abstraction (Upstash REST / in-memory) |
+| `lib/points/client.ts` | `trackAction` with retry+replay queue, react-query hooks |
+| `app/api/points/*` | `track`, `me`, `leaderboard`, `referral` |
+| `app/points/page.tsx` | Dashboard, referral card, rewards, tiers, leaderboard |
+
+Redemptions themselves are operator-run (invite links, pool payouts) — the
+program tracks and ranks; you decide when a season pays out.
 
 ## How the lottery works
 

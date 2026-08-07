@@ -149,6 +149,27 @@ export default function DocsPage() {
       </section>
 
       <section className="docsSection pPanel">
+        <h2 className="docsH2">✨ Points &amp; rewards</h2>
+        <p className="docsP">
+          Every swap, bridge, perp fill, Earn deposit and rocket launch earns
+          KRIPTO points, scored on the USD volume that actually settled.
+          Nothing is self-reported: the server re-reads each action from its
+          own source of truth (the LI.FI status API, a Base receipt, or
+          Hyperliquid&apos;s fill history) before a single point is minted, and
+          every action counts exactly once.
+        </p>
+        <p className="docsP">
+          Referrals pay <strong>10%</strong> of everything your invitees earn
+          and <strong>3%</strong> from the people they invite — minted on top,
+          never subtracted from them. Trading on consecutive days adds a streak
+          multiplier up to ×1.5. Points convert into private group access,
+          weekly token reward pools, free rocket launches and fee rebates; the
+          live rulebook, tiers and leaderboard are on{" "}
+          <a href="/points">/points</a>.
+        </p>
+      </section>
+
+      <section className="docsSection pPanel">
         <h2 className="docsH2">💸 Fees — full transparency</h2>
         <p className="docsP">
           KRIPTO NR.1 is funded by small interface fees on top of the

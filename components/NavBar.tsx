@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { captureReferrer } from "@/lib/referral";
 import { BuyCrypto } from "@/components/BuyCrypto";
+import { PointsBadge } from "@/components/PointsBadge";
 
 const TABS = [
   { href: "/swap", label: "Swap", emoji: "🔁" },
@@ -13,6 +14,7 @@ const TABS = [
   { href: "/earn", label: "Earn", emoji: "🏦" },
   { href: "/predict", label: "Predict", emoji: "🔮" },
   { href: "/lottery", label: "Lottery", emoji: "🚀" },
+  { href: "/points", label: "Points", emoji: "✨" },
   { href: "/docs", label: "Docs", emoji: "📄" },
 ];
 
@@ -72,6 +74,7 @@ export function NavBar() {
       </div>
 
       <div className="pNavRight">
+        {mounted && <PointsBadge />}
         <BuyCrypto className="pNavBuy" />
         {mounted && isConnected ? (
           <button

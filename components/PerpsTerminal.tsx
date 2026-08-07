@@ -23,6 +23,7 @@ import { HL_BUILDER, HL_BUILDER_FEE, HL_REF_CODE } from "@/lib/monetize";
 import { AGENT_NAME, agentAccount, resetAgentKey } from "@/lib/hlAgent";
 import { appUrl } from "@/lib/miniapp";
 import { shareCard } from "@/lib/share";
+import { useTrackPoints } from "@/lib/points/client";
 import { PerpsChart } from "@/components/PerpsChart";
 
 type Market = {
@@ -123,6 +124,9 @@ export function PerpsTerminal() {
   const { address, isConnected, connector } = useAccount();
   const { data: walletClient } = useWalletClient();
   const { writeContractAsync } = useWriteContract();
+  // Perps points are computed from the wallet's Hyperliquid fill history —
+  // this only asks the server to (re)read it.
+  const trackPoints = useTrackPoints();
 
   // Hyperliquid L1 actions are verified by recovering an ECDSA signer, so
   // only plain EOA wallets (MetaMask, Rabby, …) can trade. Smart wallets
@@ -465,6 +469,10 @@ export function PerpsTerminal() {
           ? `Limit ${isBuy ? "buy" : "sell"} ${selected} placed at ${limitPx} ✅`
           : `${isBuy ? "Long" : "Short"} ${selected} ~${fmtUsd(usd)} filled ✅`,
       });
+      // Points are scored from Hyperliquid's own fill history, so a resting
+      // limit order simply earns nothing until it fills (and the next sync
+      // picks it up). Give the exchange a beat to publish the fill.
+      setTimeout(() => void trackPoints({ source: "perps" }), 2_500);
       loadAccount();
     } catch (e) {
       setMsg({ ok: false, text: friendlyError(e) });
@@ -483,6 +491,7 @@ export function PerpsTerminal() {
     getBuilder,
     friendlyError,
     loadAccount,
+    trackPoints,
   ]);
 
   const applyLeverage = useCallback(async () => {
@@ -543,6 +552,7 @@ export function PerpsTerminal() {
           throw new Error(String(status.error));
         }
         setMsg({ ok: true, text: `${coin} position closed ✅` });
+        setTimeout(() => void trackPoints({ source: "perps" }), 2_500);
         loadAccount();
       } catch (e) {
         setMsg({ ok: false, text: friendlyError(e) });
@@ -550,7 +560,7 @@ export function PerpsTerminal() {
         setRowBusy(null);
       }
     },
-    [exchange, markets, getBuilder, friendlyError, loadAccount],
+    [exchange, markets, getBuilder, friendlyError, loadAccount, trackPoints],
   );
 
   const cancelOrder = useCallback(

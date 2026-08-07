@@ -33,6 +33,7 @@ import {
 import { cardUrl, shareCard } from "@/lib/share";
 import { appUrl } from "@/lib/miniapp";
 import { captureReferrer, getReferrer } from "@/lib/referral";
+import { useTrackPoints } from "@/lib/points/client";
 import { Rocket } from "@/components/Rocket";
 import { LotteryBridgeBanner } from "@/components/LotteryBridgeBanner";
 import { History, type HistoryItem } from "@/components/History";
@@ -77,6 +78,9 @@ export default function Home() {
   const { switchChain } = useSwitchChain();
   const { writeContractAsync } = useWriteContract();
   const publicClient = usePublicClient({ chainId: activeChain.id });
+  // Every launch (paid or free) earns KRIPTO points — the server re-reads the
+  // stake out of the receipt, so this is just a "go look at it" ping.
+  const trackPoints = useTrackPoints();
 
   const [bet, setBet] = useState<string>("0.0001");
   const [phase, setPhase] = useState<Phase>("idle");
@@ -404,6 +408,7 @@ export default function Home() {
       if (receipt.status === "reverted") {
         throw new Error("Launch reverted on-chain — please try again.");
       }
+      void trackPoints({ source: "lottery", txHash: hash });
       setLocalPending(true);
       void refetchGames();
       setPhase("revealing");
@@ -553,6 +558,7 @@ export default function Home() {
       if (receipt.status === "reverted") {
         throw new Error("Free launch reverted on-chain — please try again.");
       }
+      void trackPoints({ source: "lottery", txHash: hash });
       setLocalPending(true);
       void refetchGames();
       void refetchFree();
