@@ -40,9 +40,26 @@ export type SourceBreakdown = {
   actions: number;
 };
 
+export type GroupStatus = {
+  active: boolean;
+  until: number | null;
+  daysLeft: number;
+  periods: number;
+  pricePerPeriod: number;
+  periodDays: number;
+  maxPeriods: number;
+  balance: number;
+  affordable: number;
+};
+
 export type PointsProfile = {
   address: string;
+  /** Spendable balance. */
   total: number;
+  /** Lifetime produced — the rank and tier are based on this. */
+  earned: number;
+  spent: number;
+  group: GroupStatus;
   base: number;
   referral: number;
   bonus: number;
@@ -356,6 +373,25 @@ export const requestPointsPayout = (address: string) =>
 /** Poll until the claim window closes and the points are released (or voided). */
 export const settlePointsPayout = (address: string) =>
   convertPost(address, "settle");
+
+// ---------------------------------------------------------------------------
+// Private group subscription
+// ---------------------------------------------------------------------------
+
+/** Burn points for `periods` × 30 days of private-group access. */
+export async function redeemGroupAccess(address: string, periods = 1) {
+  const res = await fetch("/api/points/group", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ address, periods }),
+  });
+  return (await res.json().catch(() => ({}))) as {
+    ok?: boolean;
+    spent?: number;
+    status?: GroupStatus;
+    error?: string;
+  };
+}
 
 /** The user's own invite URL — every tab's share flow already uses `?ref=`. */
 export function referralLink(address?: string): string {

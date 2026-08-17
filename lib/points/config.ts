@@ -4,6 +4,8 @@
 // numbers a user sees are literally the numbers the engine applies. Nothing in
 // here touches Node APIs — it is safe to import from a client component.
 
+import { LIFI_FEE } from "@/lib/monetize";
+
 export type PointsSource = "swap" | "bridge" | "perps" | "lottery" | "earn";
 
 export const POINT_SOURCES = [
@@ -124,6 +126,38 @@ export function streakMultiplier(streakDays: number): number {
 }
 
 // ---------------------------------------------------------------------------
+// Private group — a 30-day subscription priced off real platform fees
+// ---------------------------------------------------------------------------
+//
+// The group costs the operator at least $20/month to run, so a month of access
+// must be worth at least $20 of fees actually paid to the platform. Rather than
+// inventing a number, the price is DERIVED: how much swap volume pays $20 of
+// interface fees, converted at the swap points rate. Change NEXT_PUBLIC_LIFI_FEE
+// and the price follows automatically.
+//
+//   $20 / 0.30% fee            = $6,667 of swap volume
+//   $6,667 × 10 pts/$1         = ~66,667 points  → rounded to the nearest 1,000
+
+/** What one month of the group costs the operator, in USD of platform fees. */
+export const GROUP_MONTH_USD = 20;
+
+/** Days of access one redemption buys. */
+export const GROUP_PERIOD_DAYS = 30;
+
+/** Volume a user must route to pay GROUP_MONTH_USD in interface fees. */
+export const GROUP_MONTH_VOLUME_USD =
+  LIFI_FEE > 0 ? GROUP_MONTH_USD / LIFI_FEE : 0;
+
+/** Points for one 30-day period. Rounded to a readable figure. */
+export const GROUP_MONTH_POINTS =
+  Math.round((GROUP_MONTH_VOLUME_USD * SOURCES.swap.rate) / 1_000) * 1_000 || 67_000;
+
+/** How far ahead access can be prepaid in one go. */
+export const GROUP_MAX_MONTHS = 12;
+
+export const GROUP_PERIOD_MS = GROUP_PERIOD_DAYS * 86_400_000;
+
+// ---------------------------------------------------------------------------
 // Tiers
 // ---------------------------------------------------------------------------
 
@@ -148,7 +182,7 @@ export const TIERS: Tier[] = [
     emoji: "🛰️",
     min: 1_000,
     color: "#5b8cff",
-    perks: ["Private Telegram group access", "Early feature drops"],
+    perks: ["Early feature drops", "Points rocket unlocked"],
   },
   {
     name: "Captain",
@@ -157,7 +191,7 @@ export const TIERS: Tier[] = [
     color: "#2fe08a",
     perks: [
       "Weekly token reward-pool share",
-      "Private group + alpha channel",
+      "Alpha channel",
       "Priority support",
     ],
   },
@@ -216,16 +250,21 @@ export type Reward = {
   desc: string;
   /** Points needed, or null when it is a tier-gated perk rather than a spend. */
   cost: number | null;
-  kind: "access" | "pool" | "perk";
+  kind: "access" | "pool" | "perk" | "subscription";
+  /** Subscriptions are redeemed per period rather than bought once. */
+  perPeriod?: string;
 };
 
 export const REWARDS: Reward[] = [
   {
     emoji: "🔒",
-    title: "Private group access",
-    desc: "Invite to the closed KRIPTO NR.1 group — trade ideas, alpha, direct line to the team.",
-    cost: 1_000,
-    kind: "access",
+    title: "Private group — 30 days",
+    desc: `Invite to the closed KRIPTO NR.1 group: trade ideas, alpha, direct line to the team. Priced at $${GROUP_MONTH_USD} of platform fees — roughly $${Math.round(
+      GROUP_MONTH_VOLUME_USD,
+    ).toLocaleString("en-US")} of swap volume. Renews per period.`,
+    cost: GROUP_MONTH_POINTS,
+    kind: "subscription",
+    perPeriod: `${GROUP_PERIOD_DAYS} days`,
   },
   {
     emoji: "💰",
@@ -256,7 +295,6 @@ export const REWARDS: Reward[] = [
     kind: "access",
   },
 ];
-
 // ---------------------------------------------------------------------------
 // Points rocket — gamble points instead of ETH
 // ---------------------------------------------------------------------------

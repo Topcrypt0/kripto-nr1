@@ -190,6 +190,35 @@ value. Again, no contract change:
   invalidated later. The wait is the contract's own ~8 minutes; the player can
   close the page.
 
+### The private group is a subscription, priced off real fees
+
+Access is sold in **30-day periods**, and the price is derived rather than
+invented. The group costs the operator ~$20/month to run, so a period must be
+worth $20 of fees actually paid to the platform:
+
+```
+$20 / 0.30% (NEXT_PUBLIC_LIFI_FEE)  = $6,667 of swap volume
+$6,667 × 10 pts/$1                  = 67,000 points per 30 days
+```
+
+Change the fee and the price follows; change `GROUP_MONTH_USD` and everything
+(including the dashboard copy) follows. Renewing early extends from the current
+expiry rather than from today, so no day is ever lost, and access can be prepaid
+up to 12 periods ahead. Redeemed points are **burned** — they do not flow into
+the rocket pool (`burned` in `GET /api/points/pool` tracks the total).
+
+This is why the leaderboard ranks **lifetime earned** points while the spendable
+balance is earned ± rocket P&L − redemptions: a monthly subscriber would
+otherwise be demoted out of their tier every time they paid. Spending now never
+moves your rank.
+
+The operator gets the admit list from one authenticated call:
+
+```bash
+curl "https://<your-app>/api/points/group?members=1" \
+  -H "authorization: Bearer $POINTS_ADMIN_TOKEN"
+```
+
 ### Storage
 
 Points live in any Upstash-compatible REST KV (`KV_REST_API_URL` +

@@ -1297,3 +1297,19 @@ code { background: rgba(255, 255, 255, .1); padding: 1px 5px; border-radius: 5px
 .ptPlayBtn { white-space: nowrap; text-decoration: none; }
 .ptSplit .up { color: var(--green); }
 .ptSplit .down { color: var(--red); }
+
+/* ---------- private group subscription ---------- */
+.ptHeroSub { margin-top: 8px; font-size: 12px; color: #5f6ea3; }
+.ptGroup { border-color: rgba(245,181,10,.22); }
+.ptGroupActive {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;
+  font-size: 13px; color: #cdd6f5;
+}
+.ptGroupBadge {
+  padding: 4px 11px; border-radius: 999px; font-size: 11.5px; font-weight: 800;
+  color: #2fe08a; border: 1px solid rgba(47,224,138,.35); background: rgba(47,224,138,.09);
+}
+.ptGroupBuy { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ptGroupPeriods { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 220px; }
+.ptGroupBtn { border: 0; cursor: pointer; font-family: inherit; padding: 11px 18px; white-space: nowrap; }
+.ptGroupBtn:disabled { opacity: .55; cursor: default; box-shadow: none; }

@@ -2,6 +2,10 @@
 // the referral tree and exposes the reads the dashboard needs. Server-only.
 
 import {
+  GROUP_MAX_MONTHS,
+  GROUP_MONTH_POINTS,
+  GROUP_PERIOD_DAYS,
+  GROUP_PERIOD_MS,
   REFERRAL_ACTIVATION_BONUS,
   REFERRAL_L1,
   REFERRAL_L2,
@@ -14,6 +18,7 @@ import {
   type PointsSource,
 } from "./config";
 import {
+  earnedPoints,
   emptyUser,
   getStore,
   totalPoints,
@@ -34,9 +39,10 @@ export const norm = (a: string) => a.toLowerCase();
 async function load(address: string): Promise<UserRecord> {
   const store = getStore();
   const rec = (await store.getUser(norm(address))) ?? emptyUser(address);
-  // Records written before the points rocket existed lack these fields.
+  // Records written before the rocket / group features lack these fields.
   rec.gamble ??= 0;
   rec.converted ??= 0;
+  rec.spent ??= 0;
   return rec;
 }
 
@@ -44,7 +50,9 @@ async function save(rec: UserRecord) {
   const store = getStore();
   rec.updatedAt = Date.now();
   await store.putUser(rec);
-  await store.setScore(rec.address, totalPoints(rec));
+  // The board ranks lifetime earned points, so spending on redemptions or
+  // losing a rocket round never costs a wallet its position.
+  await store.setScore(rec.address, earnedPoints(rec));
 }
 
 /** Spendable balance — everything the wallet holds, however it was earned. */
@@ -110,6 +118,120 @@ export async function creditConversion(
   user.converted += points;
   await save(user);
   return totalPoints(user);
+}
+
+// ---------------------------------------------------------------------------
+// Private group subscription
+// ---------------------------------------------------------------------------
+
+export type GroupStatus = {
+  active: boolean;
+  until: number | null;
+  daysLeft: number;
+  periods: number;
+  pricePerPeriod: number;
+  periodDays: number;
+  maxPeriods: number;
+  balance: number;
+  /** Periods this wallet could afford right now. */
+  affordable: number;
+};
+
+function groupStatusOf(user: UserRecord): GroupStatus {
+  const until = user.groupUntil ?? null;
+  const active = !!until && until > Date.now();
+  const balance = totalPoints(user);
+  return {
+    active,
+    until,
+    daysLeft: active ? Math.ceil((until! - Date.now()) / 86_400_000) : 0,
+    periods: user.groupPeriods ?? 0,
+    pricePerPeriod: GROUP_MONTH_POINTS,
+    periodDays: GROUP_PERIOD_DAYS,
+    maxPeriods: GROUP_MAX_MONTHS,
+    balance,
+    affordable: Math.floor(balance / GROUP_MONTH_POINTS),
+  };
+}
+
+export async function getGroupStatus(address: string): Promise<GroupStatus> {
+  return groupStatusOf(await load(address));
+}
+
+/**
+ * Buy `periods` × 30 days of group access. Points are burned, not moved to the
+ * rocket pool — that is what keeps them scarce and keeps a period genuinely
+ * worth $20 of platform fees.
+ *
+ * Access extends from the current expiry when still active, so renewing early
+ * never loses a day. Spending does not touch the leaderboard or the tier: the
+ * board ranks lifetime *earned* points (see earnedPoints), precisely so a
+ * paying subscriber is not demoted every month.
+ */
+export async function redeemGroup(
+  address: string,
+  periods: number,
+): Promise<{ ok: true; status: GroupStatus; spent: number } | { ok: false; error: string; status: GroupStatus }> {
+  const store = getStore();
+  const me = norm(address);
+  const n = Math.floor(periods);
+
+  if (!Number.isFinite(n) || n < 1 || n > GROUP_MAX_MONTHS) {
+    return {
+      ok: false,
+      error: `Choose between 1 and ${GROUP_MAX_MONTHS} periods`,
+      status: await getGroupStatus(me),
+    };
+  }
+
+  // Serialise redemptions per wallet so two clicks can't buy one period twice.
+  if (!(await store.lock(`group:${me}`, 20))) {
+    return {
+      ok: false,
+      error: "A redemption is already in progress",
+      status: await getGroupStatus(me),
+    };
+  }
+
+  try {
+    const user = await load(me);
+    const cost = n * GROUP_MONTH_POINTS;
+    const balance = totalPoints(user);
+    if (balance < cost) {
+      return {
+        ok: false,
+        error: `Not enough points — ${formatPoints(cost)} needed, you have ${formatPoints(balance)}`,
+        status: groupStatusOf(user),
+      };
+    }
+
+    const from = Math.max(Date.now(), user.groupUntil ?? 0);
+    const until = from + n * GROUP_PERIOD_MS;
+    // Prepaying further than the cap would lock points up for no good reason.
+    if (until - Date.now() > GROUP_MAX_MONTHS * GROUP_PERIOD_MS) {
+      return {
+        ok: false,
+        error: `You can prepay at most ${GROUP_MAX_MONTHS} periods ahead`,
+        status: groupStatusOf(user),
+      };
+    }
+
+    user.spent = (user.spent ?? 0) + cost;
+    user.groupUntil = until;
+    user.groupPeriods = (user.groupPeriods ?? 0) + n;
+    await save(user);
+    await store.setGroupExpiry(me, until);
+    await store.addToPool({ burned: cost });
+
+    return { ok: true, status: groupStatusOf(user), spent: cost };
+  } finally {
+    await store.unlock(`group:${me}`);
+  }
+}
+
+/** Wallets with active access — the list the operator admits to the group. */
+export async function listGroupMembers(limit = 500) {
+  return getStore().activeGroupMembers(Math.min(Math.max(limit, 1), 1000));
 }
 
 /**
@@ -296,7 +418,12 @@ export type SourceBreakdown = {
 
 export type Profile = {
   address: string;
+  /** Spendable balance. */
   total: number;
+  /** Lifetime produced — what the rank and tier are based on. */
+  earned: number;
+  spent: number;
+  group: GroupStatus;
   base: number;
   referral: number;
   bonus: number;
@@ -326,8 +453,10 @@ export async function getProfile(address: string): Promise<Profile> {
   const existing = await store.getUser(me);
   const user = existing ?? emptyUser(me);
   const total = totalPoints(user);
-  const tier = tierFor(total);
-  const next = nextTier(total);
+  // Tier and progress track lifetime earned, matching the leaderboard.
+  const earned = earnedPoints(user);
+  const tier = tierFor(earned);
+  const next = nextTier(earned);
 
   const [rank, players] = await Promise.all([
     existing ? store.rank(me) : Promise.resolve(null),
@@ -352,6 +481,9 @@ export async function getProfile(address: string): Promise<Profile> {
   return {
     address: me,
     total,
+    earned,
+    spent: Math.round(user.spent ?? 0),
+    group: groupStatusOf(user),
     base: Math.round(user.base),
     referral: Math.round(user.referral),
     bonus: Math.round(user.bonus),
@@ -367,7 +499,7 @@ export async function getProfile(address: string): Promise<Profile> {
     tier,
     next,
     progress: next
-      ? Math.min(1, Math.max(0, (total - tier.min) / (next.min - tier.min)))
+      ? Math.min(1, Math.max(0, (earned - tier.min) / (next.min - tier.min)))
       : 1,
     referrer: user.referrer,
     invitees: user.invitees,
