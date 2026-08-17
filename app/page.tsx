@@ -37,6 +37,13 @@ const PRODUCTS = [
     desc: "The original KRIPTO NR.1 rocket. Provably-fair on-chain crash game on Base — win up to X10.",
     cta: "Launch rocket",
   },
+  {
+    href: "/points",
+    emoji: "✨",
+    title: "Points & Rewards",
+    desc: "Every swap, bridge, perp fill and rocket launch earns points by volume. Invite friends for 10% of theirs, climb the leaderboard, unlock the private group and token reward pools.",
+    cta: "See your points",
+  },
 ];
 
 export default function Home() {
@@ -59,6 +66,9 @@ export default function Home() {
             <BuyCrypto />
             <Link href="/lottery" className="pBtnGhost">
               🚀 Play lottery
+            </Link>
+            <Link href="/points" className="pBtnGhost">
+              ✨ Earn points
             </Link>
           </div>
         </div>

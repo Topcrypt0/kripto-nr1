@@ -33,6 +33,14 @@ import {
 import { cardUrl, shareCard } from "@/lib/share";
 import { appUrl } from "@/lib/miniapp";
 import { captureReferrer, getReferrer } from "@/lib/referral";
+import {
+  requestPointsPayout,
+  settlePointsPayout,
+  useTrackPoints,
+  type ConvertStatus,
+} from "@/lib/points/client";
+import { CONVERT_BONUS, convertPoints, formatPoints } from "@/lib/points/config";
+import { PointsRocket } from "@/components/PointsRocket";
 import { Rocket } from "@/components/Rocket";
 import { LotteryBridgeBanner } from "@/components/LotteryBridgeBanner";
 import { History, type HistoryItem } from "@/components/History";
@@ -77,6 +85,15 @@ export default function Home() {
   const { switchChain } = useSwitchChain();
   const { writeContractAsync } = useWriteContract();
   const publicClient = usePublicClient({ chainId: activeChain.id });
+  // Every launch (paid or free) earns KRIPTO points — the server re-reads the
+  // stake out of the receipt, so this is just a "go look at it" ping.
+  const trackPoints = useTrackPoints();
+  // "Play with ETH" (the on-chain contract) vs "play with points" (same odds,
+  // settled against the points pool — no contract involved).
+  const [mode, setMode] = useState<"eth" | "points">("eth");
+  // A win the player chose to take as points instead of claiming the ETH.
+  const [convert, setConvert] = useState<ConvertStatus | null>(null);
+  const [converting, setConverting] = useState(false);
 
   const [bet, setBet] = useState<string>("0.0001");
   const [phase, setPhase] = useState<Phase>("idle");
@@ -404,6 +421,7 @@ export default function Home() {
       if (receipt.status === "reverted") {
         throw new Error("Launch reverted on-chain — please try again.");
       }
+      void trackPoints({ source: "lottery", txHash: hash });
       setLocalPending(true);
       void refetchGames();
       setPhase("revealing");
@@ -519,10 +537,43 @@ export default function Home() {
     }
   }
 
+  /**
+   * Take the win in points instead of ETH. Nothing is signed and the contract
+   * is not touched: by simply never claiming, the ETH returns to the bankroll
+   * when the ~8 min window closes, and the server credits points once it can
+   * prove on-chain that the payout was never taken.
+   */
+  async function handleTakePoints() {
+    if (!address) return;
+    setError(null);
+    setConverting(true);
+    try {
+      const status = await requestPointsPayout(address);
+      if (status.error) setError(status.error);
+      else setConvert(status);
+    } catch {
+      setError("Could not switch this win to points — claim the ETH instead.");
+    } finally {
+      setConverting(false);
+    }
+  }
+
+  // While a conversion waits out the claim window, poll for its release. The
+  // endpoint is idempotent, so polling can never double-credit.
+  useEffect(() => {
+    if (!address || convert?.state !== "pending") return;
+    const id = window.setInterval(async () => {
+      const status = await settlePointsPayout(address).catch(() => null);
+      if (status && status.state !== "pending") setConvert(status);
+    }, 20_000);
+    return () => window.clearInterval(id);
+  }, [address, convert?.state]);
+
   function reset() {
     setPhase("idle");
     setResult(null);
     setError(null);
+    setConvert(null);
   }
 
   // A REAL free launch (contract v3): zero stake, real odds, real ETH payout
@@ -553,6 +604,7 @@ export default function Home() {
       if (receipt.status === "reverted") {
         throw new Error("Free launch reverted on-chain — please try again.");
       }
+      void trackPoints({ source: "lottery", txHash: hash });
       setLocalPending(true);
       void refetchGames();
       void refetchFree();
@@ -699,6 +751,28 @@ export default function Home() {
 
       <LotteryBridgeBanner />
 
+      {/* ETH game and points game are the same rocket with a different stake. */}
+      <div className="modeTabs">
+        <button
+          className={`modeTab${mode === "eth" ? " modeTabOn" : ""}`}
+          onClick={() => setMode("eth")}
+        >
+          Ξ Play with ETH
+        </button>
+        <button
+          className={`modeTab${mode === "points" ? " modeTabOn" : ""}`}
+          onClick={() => setMode("points")}
+        >
+          ✨ Play with points
+        </button>
+      </div>
+
+      {mode === "points" ? (
+        <section className="panel">
+          <PointsRocket muted={muted} />
+        </section>
+      ) : (
+      <>
       <section className="stage">
         <Rocket phase={rocketPhase} multiplier={result?.multiplier ?? null} />
       </section>
@@ -784,14 +858,78 @@ export default function Home() {
               {usdFromWei(result.payout, ethUsd)})
               {result.free ? " — on a FREE launch!" : ""}
             </p>
-            <button className="btn launch" onClick={handleClaim}>
-              💰 Claim {Number(formatEther(result.payout)).toFixed(4)} ETH (
-              {usdFromWei(result.payout, ethUsd)})
-            </button>
-            <p className="minmax">
-              Claim within ~8 minutes or the win expires. A loss needs no
-              transaction.
-            </p>
+
+            {convert ? (
+              <div className="convertBox">
+                {convert.state === "pending" && (
+                  <>
+                    <p className="win">
+                      ✨ {formatPoints(convert.points ?? 0)} points reserved for
+                      you.
+                    </p>
+                    <p className="minmax">
+                      Leave the ETH unclaimed and the points land once the
+                      contract&apos;s claim window closes — about{" "}
+                      {Math.ceil((convert.secondsLeft ?? 0) / 60)} min. You can
+                      close this page; they arrive either way. Claim the ETH
+                      instead and the conversion is simply voided.
+                    </p>
+                    <button className="btn launchAgain" onClick={handleClaim}>
+                      Changed my mind — claim the ETH
+                    </button>
+                  </>
+                )}
+                {convert.state === "credited" && (
+                  <>
+                    <p className="win">
+                      ✅ +{formatPoints(convert.points ?? 0)} points credited.
+                    </p>
+                    <div className="resultBtns">
+                      <button className="btn launchAgain" onClick={reset}>
+                        Launch again
+                      </button>
+                      <a className="btn shareBtn" href="/points">
+                        ✨ My points
+                      </a>
+                    </div>
+                  </>
+                )}
+                {convert.state === "voided" && (
+                  <>
+                    <p className="lose">{convert.message}</p>
+                    <button className="btn launchAgain" onClick={reset}>
+                      Launch again
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : (
+              <>
+                <button className="btn launch" onClick={handleClaim}>
+                  💰 Claim {Number(formatEther(result.payout)).toFixed(4)} ETH (
+                  {usdFromWei(result.payout, ethUsd)})
+                </button>
+                {isConnected && (
+                  <button
+                    className="btn takePoints"
+                    onClick={handleTakePoints}
+                    disabled={converting}
+                  >
+                    {converting
+                      ? "Reserving…"
+                      : `✨ Take ${formatPoints(
+                          convertPoints(
+                            Number(formatEther(result.payout)) * ethUsd,
+                          ),
+                        )} points instead (+${Math.round(CONVERT_BONUS * 100)}%)`}
+                  </button>
+                )}
+                <p className="minmax">
+                  Claim within ~8 minutes or the win expires. Taking points
+                  needs no transaction and no gas — you just don&apos;t claim.
+                </p>
+              </>
+            )}
           </div>
         ) : busy ? (
           <button className="btn launch busy" disabled>
@@ -910,6 +1048,8 @@ export default function Home() {
 
         {error && <p className="error">{error}</p>}
       </section>
+      </>
+      )}
 
       <footer className="foot">
         <span>Open source · MIT</span>

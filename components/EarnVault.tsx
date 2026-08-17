@@ -21,6 +21,7 @@ import {
   erc20Abi,
   erc4626Abi,
 } from "@/lib/defi";
+import { useTrackPoints } from "@/lib/points/client";
 
 type Protocol = "morpho" | "aave";
 
@@ -40,6 +41,7 @@ export function EarnVault({
 }) {
   const { address, isConnected, chainId } = useAccount();
   const { writeContractAsync } = useWriteContract();
+  const trackPoints = useTrackPoints();
   const [tab, setTab] = useState<"deposit" | "withdraw">("deposit");
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
@@ -187,6 +189,9 @@ export function EarnVault({
                 args: [USDC_BASE, amtWei, address, AAVE_REFERRAL],
               });
         setMsg({ ok: true, text: `Deposited ${amount} USDC ✅ Now earning yield.` });
+        // Deposits earn KRIPTO points; the server reads the real size from the
+        // receipt once it is mined (withdrawals earn nothing).
+        void trackPoints({ source: "earn", txHash: hash });
       } else {
         hash =
           protocol === "morpho"

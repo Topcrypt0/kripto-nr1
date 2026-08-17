@@ -21,6 +21,13 @@ const LiFiWidget = dynamic(
   },
 );
 
+// Also client-only: it subscribes to the widget's event emitter, which lives in
+// the same window-touching module.
+const SwapPointsEvents = dynamic(
+  () => import("@/components/SwapPointsEvents").then((m) => m.SwapPointsEvents),
+  { ssr: false },
+);
+
 // Every quote requested through the widget carries our integrator id + fee.
 // Fees accumulate in LI.FI's FeeCollector contract per chain and are claimed
 // at https://portal.li.fi under the same integrator string.
@@ -99,5 +106,10 @@ function useSyncLifiChains() {
 
 export function SwapWidget() {
   useSyncLifiChains();
-  return <LiFiWidget integrator={LIFI_INTEGRATOR} config={config} />;
+  return (
+    <>
+      <LiFiWidget integrator={LIFI_INTEGRATOR} config={config} />
+      <SwapPointsEvents />
+    </>
+  );
 }

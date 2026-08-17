@@ -149,6 +149,45 @@ export default function DocsPage() {
       </section>
 
       <section className="docsSection pPanel">
+        <h2 className="docsH2">✨ Points &amp; rewards</h2>
+        <p className="docsP">
+          Every swap, bridge, perp fill, Earn deposit and rocket launch earns
+          KRIPTO points, scored on the USD volume that actually settled.
+          Nothing is self-reported: the server re-reads each action from its
+          own source of truth (the LI.FI status API, a Base receipt, or
+          Hyperliquid&apos;s fill history) before a single point is minted, and
+          every action counts exactly once.
+        </p>
+        <p className="docsP">
+          Referrals pay <strong>10%</strong> of everything your invitees earn
+          and <strong>3%</strong> from the people they invite — minted on top,
+          never subtracted from them. Trading on consecutive days adds a streak
+          multiplier up to ×1.5. Points convert into private group access,
+          weekly token reward pools, free rocket launches and fee rebates; the
+          live rulebook, tiers and leaderboard are on{" "}
+          <a href="/points">/points</a>.
+        </p>
+        <p className="docsP">
+          Points are also <strong>playable</strong>: the{" "}
+          <a href="/lottery">rocket</a> has an ETH/points switch, and in points
+          mode the same odds table (65% X0 · 22% X2 · 8% X3 · 4% X5 · 1% X10)
+          settles against a points pool instead of the ETH bankroll. A round is
+          committed against a Base block that does not exist yet and revealed
+          from that block&apos;s hash, so every spin can be recomputed from
+          public data — the round shows its block, hash and roll. Spinning earns
+          no new points; only trading does. And when a real ETH launch wins you
+          choose: claim the ETH, or take <strong>+25%</strong> of its value in
+          points instead — no transaction, no gas, because taking points simply
+          means not claiming.
+        </p>
+        <p className="docsP">
+          One honest caveat: the points ledger is operated by this app, not by a
+          contract. Points are a loyalty balance — the randomness behind a spin
+          is on-chain and checkable, the balance itself is not an on-chain asset.
+        </p>
+      </section>
+
+      <section className="docsSection pPanel">
         <h2 className="docsH2">💸 Fees — full transparency</h2>
         <p className="docsP">
           KRIPTO NR.1 is funded by small interface fees on top of the

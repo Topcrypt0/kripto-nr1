@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Providers } from "./providers";
 import { MiniAppReady } from "@/components/MiniAppReady";
 import { NavBar } from "@/components/NavBar";
+import { PointsTracker } from "@/components/PointsTracker";
 import { appUrl, embed } from "@/lib/miniapp";
 import "./globals.css";
 
@@ -47,6 +48,7 @@ export default function RootLayout({
         <Providers>
           <NavBar />
           {children}
+          <PointsTracker />
         </Providers>
         <MiniAppReady />
       </body>
