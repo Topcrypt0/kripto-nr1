@@ -9,6 +9,7 @@ import {
   useTrackPoints,
 } from "@/lib/points/client";
 import {
+  CONVERT_BONUS,
   OVERFLOW_RATE,
   REFERRAL_ACTIVATION_BONUS,
   REFERRAL_L1,
@@ -216,7 +217,59 @@ export function PointsDashboard() {
           <span>
             Bonuses: <strong>{formatPoints(profile?.bonus ?? 0)}</strong>
           </span>
+          {(profile?.converted ?? 0) > 0 && (
+            <span>
+              ETH wins taken as points:{" "}
+              <strong>{formatPoints(profile?.converted ?? 0)}</strong>
+            </span>
+          )}
+          {(profile?.rocket?.rounds ?? 0) > 0 && (
+            <span>
+              Rocket P&amp;L:{" "}
+              <strong className={(profile?.gamble ?? 0) >= 0 ? "up" : "down"}>
+                {(profile?.gamble ?? 0) >= 0 ? "+" : "−"}
+                {formatPoints(Math.abs(profile?.gamble ?? 0))}
+              </strong>
+            </span>
+          )}
         </div>
+      </section>
+
+      {/* ---- spend points on the rocket ---- */}
+      <section className="ptPanel ptPlay">
+        <div className="ptPlayText">
+          <h2 className="ptPanelTitle">🚀 Spin your points</h2>
+          <p className="ptMuted ptRefBlurb">
+            Same rocket, same odds, no wallet transaction: bet points, win up to
+            X10 of them — or lose them. Rounds are decided by the hash of a Base
+            block picked <em>before</em> it exists, so every spin can be
+            recomputed by hand. Spins pay out from the points pool and earn no
+            new points themselves.
+          </p>
+          {(profile?.rocket?.rounds ?? 0) > 0 && (
+            <div className="ptSplit">
+              <span>
+                Spins: <strong>{formatPoints(profile?.rocket.rounds ?? 0)}</strong>
+              </span>
+              <span>
+                Staked:{" "}
+                <strong>{formatPoints(profile?.rocket.staked ?? 0)}</strong>
+              </span>
+              <span>
+                Won: <strong>{formatPoints(profile?.rocket.won ?? 0)}</strong>
+              </span>
+              <span>
+                Best hit:{" "}
+                <strong>
+                  {profile?.rocket.best ? `X${profile.rocket.best}` : "—"}
+                </strong>
+              </span>
+            </div>
+          )}
+        </div>
+        <Link href="/lottery" className="pBtnPrimary ptPlayBtn">
+          Open the rocket →
+        </Link>
       </section>
 
       {/* ---- referrals ---- */}
@@ -381,6 +434,11 @@ function EarnRules() {
         <li>
           Trade on consecutive days for a streak bonus: +
           {Math.round(STREAK_STEP * 100)}% per day, up to ×{STREAK_MAX}.
+        </li>
+        <li>
+          Spinning points in the rocket earns no points — only trading does.
+          Winning an ETH launch, though, can be taken as points instead of ETH
+          at +{Math.round(CONVERT_BONUS * 100)}%.
         </li>
       </ul>
     </section>

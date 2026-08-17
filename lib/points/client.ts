@@ -46,6 +46,9 @@ export type PointsProfile = {
   base: number;
   referral: number;
   bonus: number;
+  gamble: number;
+  converted: number;
+  rocket: { rounds: number; staked: number; won: number; best: number };
   volumeUsd: number;
   actions: number;
   rank: number | null;
@@ -243,6 +246,116 @@ export function useTrackPoints() {
     [address, qc],
   );
 }
+
+// ---------------------------------------------------------------------------
+// Points rocket
+// ---------------------------------------------------------------------------
+
+export type RocketRound = {
+  id: string;
+  address: string;
+  bet: number;
+  targetBlock: number;
+  createdAt: number;
+  status: "pending" | "settled";
+  blockHash?: string;
+  roll?: number;
+  multiplier?: number;
+  payout?: number;
+  settledAt?: number;
+};
+
+export type RocketState = {
+  durable?: boolean;
+  pending: RocketRound | null;
+  history: RocketRound[];
+  balance: number;
+  pool: { balance: number; reserved: number; available: number; open: boolean };
+  limits: { min: number; max: number; maxAffordable: number };
+};
+
+export type ConvertStatus = {
+  state: "none" | "pending" | "credited" | "voided";
+  points?: number;
+  payoutEth?: string;
+  multiplier?: number;
+  settleAfter?: number;
+  currentBlock?: number;
+  secondsLeft?: number;
+  balance?: number;
+  message?: string;
+  error?: string;
+};
+
+async function rocketPost(body: Record<string, unknown>) {
+  const res = await fetch("/api/points/rocket", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const json = (await res.json().catch(() => ({}))) as {
+    ok?: boolean;
+    round?: RocketRound;
+    state?: RocketState;
+    error?: string;
+    retryable?: boolean;
+  };
+  return { status: res.status, ...json };
+}
+
+export function useRocketState(address?: string) {
+  return useQuery({
+    queryKey: ["points", "rocket", address?.toLowerCase()],
+    enabled: Boolean(address),
+    queryFn: async () => {
+      const res = await fetch(`/api/points/rocket?address=${address}`);
+      if (!res.ok) throw new Error("Could not load the points rocket");
+      return (await res.json()) as RocketState;
+    },
+  });
+}
+
+/** Commit a round — the stake leaves the balance right away. */
+export async function launchPointsRound(address: string, bet: number) {
+  return rocketPost({ address, action: "launch", bet });
+}
+
+/**
+ * Reveal a committed round. The target block needs a few seconds to be mined,
+ * so a 202 ("not yet") is retried rather than surfaced as a failure.
+ */
+export async function revealPointsRound(
+  address: string,
+  roundId: string,
+  attempts = 12,
+): Promise<{ round?: RocketRound; state?: RocketState; error?: string }> {
+  for (let i = 0; i < attempts; i++) {
+    const res = await rocketPost({ address, action: "reveal", roundId });
+    if (res.status === 200 && res.round) return res;
+    if (res.status !== 202 && res.status < 500) {
+      return { error: res.error ?? "Reveal failed" };
+    }
+    await new Promise((r) => setTimeout(r, 2_000));
+  }
+  return { error: "The reveal block is taking unusually long — try again." };
+}
+
+async function convertPost(address: string, action: "request" | "settle") {
+  const res = await fetch("/api/points/convert", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ address, action }),
+  });
+  return (await res.json().catch(() => ({}))) as ConvertStatus;
+}
+
+/** Ask to take a pending ETH win as points instead. */
+export const requestPointsPayout = (address: string) =>
+  convertPost(address, "request");
+
+/** Poll until the claim window closes and the points are released (or voided). */
+export const settlePointsPayout = (address: string) =>
+  convertPost(address, "settle");
 
 /** The user's own invite URL — every tab's share flow already uses `?ref=`. */
 export function referralLink(address?: string): string {

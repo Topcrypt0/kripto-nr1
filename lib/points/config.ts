@@ -258,6 +258,60 @@ export const REWARDS: Reward[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Points rocket — gamble points instead of ETH
+// ---------------------------------------------------------------------------
+//
+// The odds are a byte-for-byte mirror of KriptoNr1.sol so the points game is
+// the *same* game, just settled against a points pool instead of the bankroll.
+// The contract is not touched at all: randomness comes from the hash of a
+// future Base block, exactly like `blockhash(targetBlock)` on-chain, and the
+// roll is the same keccak256(blockHash, player, bet) % 10000.
+//
+// Spinning points earns NO volume points — otherwise the loop would print
+// points out of thin air. The pool is the only source of new points here.
+
+export const ROCKET_MIN_BET = 100; // points
+export const ROCKET_MAX_BET = 25_000; // points
+export const ROCKET_MAX_MULTIPLIER = 10;
+export const ROCKET_BPS = 10_000;
+
+/** The contract's outcome table, with the odds spelled out for the UI. */
+export const ROCKET_TABLE = [
+  { multiplier: 0, below: 6_500, chance: 65 },
+  { multiplier: 2, below: 8_700, chance: 22 },
+  { multiplier: 3, below: 9_500, chance: 8 },
+  { multiplier: 5, below: 9_900, chance: 4 },
+  { multiplier: 10, below: ROCKET_BPS, chance: 1 },
+] as const;
+
+/** Identical to `_multiplierForRoll` in KriptoNr1.sol. */
+export function multiplierForRoll(roll: number): number {
+  if (roll < 6_500) return 0;
+  if (roll < 8_700) return 2;
+  if (roll < 9_500) return 3;
+  if (roll < 9_900) return 5;
+  return 10;
+}
+
+// ---------------------------------------------------------------------------
+// Claiming an ETH win as points instead
+// ---------------------------------------------------------------------------
+
+/**
+ * Points per $1 of forfeited ETH payout. A winner who takes points leaves the
+ * ETH in the contract (it returns to the bankroll when the claim window
+ * closes), so the bonus below costs the house nothing but pool points.
+ */
+export const CONVERT_RATE = 200;
+export const CONVERT_BONUS = 0.25;
+
+/** Points a `payoutUsd` ETH win is worth if taken as points. */
+export function convertPoints(payoutUsd: number): number {
+  if (!Number.isFinite(payoutUsd) || payoutUsd <= 0) return 0;
+  return Math.round(payoutUsd * CONVERT_RATE * (1 + CONVERT_BONUS));
+}
+
+// ---------------------------------------------------------------------------
 // Scoring
 // ---------------------------------------------------------------------------
 

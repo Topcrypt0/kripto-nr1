@@ -107,8 +107,11 @@ npm run dev                     # http://localhost:3000
 
 A retention loop on top of every tab: **swap, bridge, perps, Earn and the
 rocket all pay points by USD volume**, points rank you on a public leaderboard,
-and points convert into private-group access, weekly token reward pools, free
-launches and fee rebates.
+points can be **gambled in the rocket** for up to X10, and points convert into
+private-group access, weekly token reward pools, free launches and fee rebates.
+
+> **Setting it up:** step-by-step operator instructions are in
+> [`docs/POINTS_SETUP.md`](./docs/POINTS_SETUP.md).
 
 ### Nothing is self-reported
 
@@ -139,6 +142,54 @@ reserved exactly once per season, so replaying a request awards nothing.
   unlocking a perk set rendered straight from the same config the engine scores
   with, so the dashboard can never drift from the rules.
 
+### Spending points: the points rocket
+
+Points are not just a scoreboard — they are playable. `/lottery` has an
+**ETH / points** switch. In points mode the same rocket runs with the same
+odds table, settled against a **points pool** instead of the ETH bankroll.
+
+**The lottery contract is not modified and not called.** What is reused is its
+design:
+
+1. **Commit** — a round is written down with a target Base block that does not
+   exist yet, and the stake leaves the player's balance immediately. Neither
+   the player nor the operator can know the outcome at this moment.
+2. **Reveal** — once the chain produces that block,
+   `roll = keccak256(blockHash, player, bet) % 10000` and the multiplier comes
+   from the contract's own table (65% X0 · 22% X2 · 8% X3 · 4% X5 · 1% X10,
+   house edge ≈ 2%). Every settled round shows its block number, block hash and
+   roll, so anyone can recompute it by hand.
+
+One difference in the player's favour: the EVM's `blockhash` opcode only reaches
+back 256 blocks, so on-chain wins can expire. An RPC can read any past block, so
+a points round **never expires** — a reload finishes it automatically.
+
+Spins earn **no** points (otherwise the loop would mint points from nothing).
+The pool is the only source, which is exactly what bounds the liability: seed it
+with `POINTS_POOL`, top it up at runtime through the admin route, and the most
+the game can ever pay out is what you funded plus what players lost into it. A
+bet is refused unless the pool can still cover a worst-case X10 win, mirroring
+the contract's `reserved` check.
+
+### Claiming an ETH win as points
+
+When a real ETH launch wins, the player picks: **claim the ETH** (the normal
+on-chain `claim()`), or **take points instead** at +25% of the payout's dollar
+value. Again, no contract change:
+
+- The contract pays only if `claim()` arrives within 256 blocks. A player taking
+  points simply never sends it, so the ETH returns to the bankroll — the house
+  pays nothing in ETH, which is what funds the bonus.
+- The obvious attack is to ask for points *and* claim the ETH. So points are not
+  credited on request: the intent is recorded, and once the window closes the
+  server proves on-chain that **no `Settled` event with a payout exists** for
+  that player in the window. That one check covers `claim()`, a keeper's
+  `settle()`, and the auto-settle inside the player's next `launch()`.
+- After the window `_settle` can only take the expired branch, which emits
+  `Expired`, never `Settled` — so once the check passes it can never be
+  invalidated later. The wait is the contract's own ~8 minutes; the player can
+  close the page.
+
 ### Storage
 
 Points live in any Upstash-compatible REST KV (`KV_REST_API_URL` +
@@ -154,14 +205,19 @@ Bump `NEXT_PUBLIC_POINTS_SEASON` to archive a season and start everyone at zero.
 | --- | --- |
 | `lib/points/config.ts` | Rates, caps, tiers, rewards — shared by server and UI |
 | `lib/points/verify.ts` | Per-source verification (the trust boundary) |
-| `lib/points/engine.ts` | Awarding, idempotency, streaks, referral tree |
+| `lib/points/engine.ts` | Awarding, idempotency, streaks, referral tree, balances |
+| `lib/points/rocket.ts` | Points rocket: commit/reveal + pool accounting |
+| `lib/points/convert.ts` | Taking an ETH win as points instead |
 | `lib/points/store.ts` | KV abstraction (Upstash REST / in-memory) |
+| `lib/points/rpc.ts` | Shared server-side Base client |
 | `lib/points/client.ts` | `trackAction` with retry+replay queue, react-query hooks |
-| `app/api/points/*` | `track`, `me`, `leaderboard`, `referral` |
+| `app/api/points/*` | `track`, `me`, `leaderboard`, `referral`, `rocket`, `convert`, `pool` |
 | `app/points/page.tsx` | Dashboard, referral card, rewards, tiers, leaderboard |
+| `components/PointsRocket.tsx` | The points-mode rocket UI, with per-round proof |
 
-Redemptions themselves are operator-run (invite links, pool payouts) — the
-program tracks and ranks; you decide when a season pays out.
+Redemptions of the catalogue items (group invites, pool payouts) are
+operator-run — the program tracks, ranks and settles the rocket; you decide when
+a season pays out.
 
 ## How the lottery works
 

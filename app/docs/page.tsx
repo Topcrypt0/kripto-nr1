@@ -167,6 +167,24 @@ export default function DocsPage() {
           live rulebook, tiers and leaderboard are on{" "}
           <a href="/points">/points</a>.
         </p>
+        <p className="docsP">
+          Points are also <strong>playable</strong>: the{" "}
+          <a href="/lottery">rocket</a> has an ETH/points switch, and in points
+          mode the same odds table (65% X0 · 22% X2 · 8% X3 · 4% X5 · 1% X10)
+          settles against a points pool instead of the ETH bankroll. A round is
+          committed against a Base block that does not exist yet and revealed
+          from that block&apos;s hash, so every spin can be recomputed from
+          public data — the round shows its block, hash and roll. Spinning earns
+          no new points; only trading does. And when a real ETH launch wins you
+          choose: claim the ETH, or take <strong>+25%</strong> of its value in
+          points instead — no transaction, no gas, because taking points simply
+          means not claiming.
+        </p>
+        <p className="docsP">
+          One honest caveat: the points ledger is operated by this app, not by a
+          contract. Points are a loyalty balance — the randomness behind a spin
+          is on-chain and checkable, the balance itself is not an on-chain asset.
+        </p>
       </section>
 
       <section className="docsSection pPanel">

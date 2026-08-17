@@ -6,13 +6,13 @@
 // a Base receipt, Hyperliquid's fill history) and returns the USD volume that
 // actually settled, together with a stable event id used for idempotency.
 
-import { createPublicClient, fallback, formatEther, http, parseEventLogs } from "viem";
-import { base, baseSepolia } from "viem/chains";
+import { formatEther, parseEventLogs } from "viem";
 import { erc20Abi } from "viem";
 import { CONTRACT_ADDRESS, kriptoNr1Abi } from "@/lib/contract";
 import { AAVE_POOL, MORPHO_VAULT, USDC_BASE, USDC_DECIMALS } from "@/lib/defi";
 import { LIFI_INTEGRATOR } from "@/lib/monetize";
 import type { PointsSource } from "./config";
+import { rpc } from "./rpc";
 
 export type VerifiedAction = {
   source: PointsSource;
@@ -41,7 +41,7 @@ const eq = (a?: string | null, b?: string | null) =>
 
 let ethUsd = { value: 0, at: 0 };
 
-async function getEthUsd(): Promise<number> {
+export async function getEthUsd(): Promise<number> {
   if (ethUsd.value > 0 && Date.now() - ethUsd.at < 60_000) return ethUsd.value;
   try {
     const res = await fetch("https://api.coinbase.com/v2/prices/ETH-USD/spot", {
@@ -58,27 +58,8 @@ async function getEthUsd(): Promise<number> {
 }
 
 // ---------------------------------------------------------------------------
-// Base RPC (server side)
+// On-chain reads
 // ---------------------------------------------------------------------------
-
-const useTestnet = process.env.NEXT_PUBLIC_CHAIN === "baseSepolia";
-const chain = useTestnet ? baseSepolia : base;
-
-const rpc = createPublicClient({
-  chain,
-  transport: fallback(
-    [
-      ...(process.env.POINTS_RPC_URL ? [http(process.env.POINTS_RPC_URL)] : []),
-      ...(process.env.NEXT_PUBLIC_RPC_URL
-        ? [http(process.env.NEXT_PUBLIC_RPC_URL)]
-        : []),
-      http("https://base-rpc.publicnode.com"),
-      http("https://base.llamarpc.com"),
-      http(),
-    ],
-    { rank: false },
-  ),
-});
 
 async function receiptFor(txHash: `0x${string}`) {
   let receipt;

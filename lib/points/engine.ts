@@ -33,7 +33,11 @@ export const norm = (a: string) => a.toLowerCase();
 /** Load a user, creating (but not persisting) a blank record when new. */
 async function load(address: string): Promise<UserRecord> {
   const store = getStore();
-  return (await store.getUser(norm(address))) ?? emptyUser(address);
+  const rec = (await store.getUser(norm(address))) ?? emptyUser(address);
+  // Records written before the points rocket existed lack these fields.
+  rec.gamble ??= 0;
+  rec.converted ??= 0;
+  return rec;
 }
 
 async function save(rec: UserRecord) {
@@ -41,6 +45,71 @@ async function save(rec: UserRecord) {
   rec.updatedAt = Date.now();
   await store.putUser(rec);
   await store.setScore(rec.address, totalPoints(rec));
+}
+
+/** Spendable balance — everything the wallet holds, however it was earned. */
+export async function balanceOf(address: string): Promise<number> {
+  return totalPoints(await load(address));
+}
+
+/**
+ * Move points out of a wallet and into the rocket. Refuses to overdraw, so a
+ * balance can never go negative no matter how the caller behaves.
+ */
+export async function stakePoints(
+  address: string,
+  amount: number,
+): Promise<{ ok: boolean; balance: number }> {
+  const user = await load(address);
+  const balance = totalPoints(user);
+  if (amount <= 0 || balance < amount) return { ok: false, balance };
+
+  user.gamble -= amount;
+  const stats = user.rocket ?? { rounds: 0, staked: 0, won: 0, best: 0 };
+  stats.rounds += 1;
+  stats.staked += amount;
+  user.rocket = stats;
+  await save(user);
+  return { ok: true, balance: totalPoints(user) };
+}
+
+/** Return a stake (round could not be committed) without touching the stats. */
+export async function refundStake(address: string, amount: number) {
+  const user = await load(address);
+  user.gamble += amount;
+  const stats = user.rocket;
+  if (stats) {
+    stats.rounds = Math.max(0, stats.rounds - 1);
+    stats.staked = Math.max(0, stats.staked - amount);
+  }
+  await save(user);
+}
+
+/** Pay a points-rocket win. `multiplier` is recorded for the "best hit" stat. */
+export async function payRocketWin(
+  address: string,
+  payout: number,
+  multiplier: number,
+): Promise<number> {
+  const user = await load(address);
+  user.gamble += payout;
+  const stats = user.rocket ?? { rounds: 0, staked: 0, won: 0, best: 0 };
+  stats.won += payout;
+  if (multiplier > stats.best) stats.best = multiplier;
+  user.rocket = stats;
+  await save(user);
+  return totalPoints(user);
+}
+
+/** Credit points taken in place of an ETH lottery payout. */
+export async function creditConversion(
+  address: string,
+  points: number,
+): Promise<number> {
+  const user = await load(address);
+  user.converted += points;
+  await save(user);
+  return totalPoints(user);
 }
 
 /**
@@ -231,6 +300,9 @@ export type Profile = {
   base: number;
   referral: number;
   bonus: number;
+  gamble: number;
+  converted: number;
+  rocket: { rounds: number; staked: number; won: number; best: number };
   volumeUsd: number;
   actions: number;
   rank: number | null;
@@ -283,6 +355,9 @@ export async function getProfile(address: string): Promise<Profile> {
     base: Math.round(user.base),
     referral: Math.round(user.referral),
     bonus: Math.round(user.bonus),
+    gamble: Math.round(user.gamble ?? 0),
+    converted: Math.round(user.converted ?? 0),
+    rocket: user.rocket ?? { rounds: 0, staked: 0, won: 0, best: 0 },
     volumeUsd: user.volumeUsd,
     actions: user.actions,
     rank,
