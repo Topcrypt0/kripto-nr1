@@ -2,14 +2,21 @@
 
 import Link from "next/link";
 import { useCallback, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAccount, useConnect } from "wagmi";
 import {
+  redeemGroupAccess,
   referralLink,
   usePointsProfile,
   useTrackPoints,
+  type PointsProfile,
 } from "@/lib/points/client";
 import {
   CONVERT_BONUS,
+  GROUP_MONTH_POINTS,
+  GROUP_MONTH_USD,
+  GROUP_MONTH_VOLUME_USD,
+  GROUP_PERIOD_DAYS,
   OVERFLOW_RATE,
   REFERRAL_ACTIVATION_BONUS,
   REFERRAL_L1,
@@ -32,6 +39,7 @@ export function PointsDashboard() {
   const { connectors, connect, isPending } = useConnect();
   const { data, isLoading } = usePointsProfile(address);
   const track = useTrackPoints();
+  const qc = useQueryClient();
   const [copied, setCopied] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
@@ -106,7 +114,7 @@ export function PointsDashboard() {
       {/* ---- hero ---- */}
       <section className="ptHero">
         <div className="ptHeroMain">
-          <div className="ptHeroLabel">Your KRIPTO points</div>
+          <div className="ptHeroLabel">Points to spend</div>
           <div className="ptHeroValue">
             {isLoading ? "…" : formatPoints(profile?.total ?? 0)}
           </div>
@@ -125,6 +133,12 @@ export function PointsDashboard() {
                 ? `Rank #${profile.rank} of ${profile.players}`
                 : "Unranked — earn your first points"}
             </span>
+          </div>
+          {/* Rank and tier follow lifetime earned, so spending never demotes. */}
+          <div className="ptHeroSub">
+            {formatPoints(profile?.earned ?? 0)} earned lifetime
+            {(profile?.spent ?? 0) > 0 &&
+              ` · ${formatPoints(profile?.spent ?? 0)} spent`}
           </div>
 
           {profile?.next && (
@@ -303,6 +317,13 @@ export function PointsDashboard() {
         )}
       </section>
 
+      {/* ---- private group subscription ---- */}
+      <GroupCard
+        address={address}
+        group={profile?.group}
+        onDone={() => qc.invalidateQueries({ queryKey: ["points"] })}
+      />
+
       <EarnRules />
 
       {/* ---- what points buy ---- */}
@@ -312,7 +333,8 @@ export function PointsDashboard() {
           <span className="ptPanelNote">Redemptions open at season end</span>
         </div>
         <div className="ptRewards">
-          {REWARDS.map((r) => {
+          {/* The group has its own card above — it is a subscription, not a buy-once. */}
+          {REWARDS.filter((r) => r.kind !== "subscription").map((r) => {
             const unlocked = (profile?.total ?? 0) >= (r.cost ?? 0);
             return (
               <div
@@ -381,6 +403,118 @@ function Stat({
         {value}
       </div>
     </div>
+  );
+}
+
+/**
+ * The private group is a subscription, not a one-off unlock: one period costs
+ * the points equivalent of the $20/month the group actually costs to run.
+ */
+function GroupCard({
+  address,
+  group,
+  onDone,
+}: {
+  address?: string;
+  group?: PointsProfile["group"];
+  onDone: () => void;
+}) {
+  const [periods, setPeriods] = useState(1);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const cost = periods * GROUP_MONTH_POINTS;
+  const canAfford = (group?.balance ?? 0) >= cost;
+
+  const redeem = useCallback(async () => {
+    if (!address) return;
+    setBusy(true);
+    setMsg(null);
+    const res = await redeemGroupAccess(address, periods);
+    setBusy(false);
+    setMsg(
+      res.ok
+        ? {
+            ok: true,
+            text: `Access active for ${res.status?.daysLeft ?? 0} more days. Send the operator your wallet address to get the invite.`,
+          }
+        : { ok: false, text: res.error ?? "Redemption failed" },
+    );
+    if (res.ok) onDone();
+  }, [address, periods, onDone]);
+
+  return (
+    <section className="ptPanel ptGroup">
+      <div className="ptPanelHead">
+        <h2 className="ptPanelTitle">🔒 Private group</h2>
+        <span className="ptPanelNote">
+          {formatPoints(GROUP_MONTH_POINTS)} pts / {GROUP_PERIOD_DAYS} days
+        </span>
+      </div>
+
+      {group?.active ? (
+        <div className="ptGroupActive">
+          <span className="ptGroupBadge">✅ Active</span>
+          <span>
+            {group.daysLeft} day{group.daysLeft === 1 ? "" : "s"} left · expires{" "}
+            {group.until ? new Date(group.until).toLocaleDateString() : "—"}
+          </span>
+        </div>
+      ) : (
+        <p className="ptMuted ptRefBlurb">
+          Closed group: trade ideas, alpha, direct line to the team.
+        </p>
+      )}
+
+      <p className="ptMuted ptRefBlurb">
+        A period is priced off what the group actually costs to run (
+        <strong>${GROUP_MONTH_USD}/month</strong>), so it takes about{" "}
+        <strong>
+          ${Math.round(GROUP_MONTH_VOLUME_USD).toLocaleString("en-US")}
+        </strong>{" "}
+        of swap volume routed through the terminal to earn — trade normally and
+        it pays for itself. Points are burned on redemption, and your rank and
+        tier are untouched: the leaderboard ranks points <em>earned</em>, so
+        paying never demotes you.
+      </p>
+
+      <div className="ptGroupBuy">
+        <div className="ptGroupPeriods">
+          {[1, 3, 6, 12].map((n) => (
+            <button
+              key={n}
+              className={`prPreset${periods === n ? " prPresetOn" : ""}`}
+              disabled={busy}
+              onClick={() => setPeriods(n)}
+            >
+              {n}× {n === 1 ? "period" : "periods"}
+            </button>
+          ))}
+        </div>
+        <button
+          className="pBtnPrimary ptGroupBtn"
+          disabled={busy || !address || !canAfford}
+          onClick={redeem}
+        >
+          {busy
+            ? "Redeeming…"
+            : canAfford
+              ? `${group?.active ? "Extend" : "Unlock"} for ${formatPoints(cost)} pts`
+              : `Need ${formatPoints(cost - (group?.balance ?? 0))} more pts`}
+        </button>
+      </div>
+
+      {msg && (
+        <div className={msg.ok ? "ptSyncMsg" : "prError"}>{msg.text}</div>
+      )}
+      {(group?.periods ?? 0) > 0 && (
+        <div className="ptSplit">
+          <span>
+            Periods bought: <strong>{group?.periods}</strong>
+          </span>
+        </div>
+      )}
+    </section>
   );
 }
 

@@ -34,6 +34,12 @@ export type UserRecord = {
   gamble: number;
   /** Points taken instead of an ETH lottery payout. */
   converted: number;
+  /** Points burned on redemptions (group access and anything added later). */
+  spent: number;
+  /** Group access valid until this ms timestamp. */
+  groupUntil?: number;
+  /** Lifetime periods of group access bought. */
+  groupPeriods?: number;
   /** Points-rocket lifetime stats (display only). */
   rocket?: { rounds: number; staked: number; won: number; best: number };
   /** Verified USD volume, total and per source. */
@@ -103,6 +109,8 @@ export type Pool = {
   paidOut: number;
   wagered: number;
   rounds: number;
+  /** Points destroyed by redemptions — they do not return to the pool. */
+  burned: number;
 };
 
 export const emptyPool = (): Pool => ({
@@ -112,6 +120,7 @@ export const emptyPool = (): Pool => ({
   paidOut: 0,
   wagered: 0,
   rounds: 0,
+  burned: 0,
 });
 
 export interface PointsStore {
@@ -139,6 +148,14 @@ export interface PointsStore {
   getPool(): Promise<Pool>;
   /** Atomically add the given deltas and return the resulting pool. */
   addToPool(delta: Partial<Pool>): Promise<Pool>;
+
+  // --- group subscription ---
+  /** Index a wallet's access expiry so the operator can list who is in. */
+  setGroupExpiry(address: string, until: number): Promise<void>;
+  /** Wallets whose access has not expired, soonest expiry first. */
+  activeGroupMembers(
+    limit: number,
+  ): Promise<{ address: string; until: number }[]>;
 }
 
 const key = {
@@ -150,6 +167,7 @@ const key = {
   round: (id: string) => `kr1:${SEASON}:r:${id}`,
   rounds: (a: string) => `kr1:${SEASON}:rs:${a}`,
   pool: () => `kr1:${SEASON}:pool`,
+  group: () => `kr1:${SEASON}:group`,
 };
 
 const POOL_FIELDS: (keyof Pool)[] = [
@@ -159,6 +177,7 @@ const POOL_FIELDS: (keyof Pool)[] = [
   "paidOut",
   "wagered",
   "rounds",
+  "burned",
 ];
 
 /** Keep at most this many rounds of history per player. */
@@ -173,6 +192,7 @@ export function emptyUser(address: string): UserRecord {
     bonus: 0,
     gamble: 0,
     converted: 0,
+    spent: 0,
     volumeUsd: 0,
     bySource: {},
     actions: 0,
@@ -186,10 +206,24 @@ export function emptyUser(address: string): UserRecord {
   };
 }
 
+/**
+ * Lifetime points *produced* — what ranks a wallet on the leaderboard and sets
+ * its tier. Deliberately excludes rocket P&L and redemptions: paying for a
+ * month of group access must not demote you, and a lucky spin must not promote
+ * you. The board measures what you brought to the platform.
+ */
+export function earnedPoints(u: UserRecord): number {
+  return Math.round(u.base + u.referral + u.bonus + (u.converted ?? 0));
+}
+
+/**
+ * Spendable balance — earned, plus/minus the rocket, minus redemptions. This is
+ * the number a user can actually stake or spend; it never goes below zero
+ * because every spend path checks it first.
+ */
 export function totalPoints(u: UserRecord): number {
-  // `gamble` is signed; the spend path never lets the sum go below zero.
   return Math.round(
-    u.base + u.referral + u.bonus + (u.gamble ?? 0) + (u.converted ?? 0),
+    earnedPoints(u) + (u.gamble ?? 0) - (u.spent ?? 0),
   );
 }
 
@@ -403,6 +437,28 @@ class RedisStore implements PointsStore {
     );
     return this.getPool();
   }
+
+  async setGroupExpiry(address: string, until: number) {
+    await this.one(["ZADD", key.group(), until, address]);
+  }
+
+  async activeGroupMembers(limit: number) {
+    const flat = await this.one<string[]>([
+      "ZRANGEBYSCORE",
+      key.group(),
+      Date.now(),
+      "+inf",
+      "WITHSCORES",
+      "LIMIT",
+      0,
+      limit,
+    ]);
+    const rows: { address: string; until: number }[] = [];
+    for (let i = 0; i + 1 < (flat?.length ?? 0); i += 2) {
+      rows.push({ address: flat[i], until: Number(flat[i + 1]) });
+    }
+    return rows;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -418,6 +474,7 @@ type Mem = {
   rounds: Map<string, RocketRound>;
   history: Map<string, string[]>;
   pool: Pool;
+  group: Map<string, number>;
 };
 
 // Survives hot-reloads in dev (module re-evaluation) by hanging off globalThis.
@@ -431,6 +488,7 @@ const mem: Mem = (g.__kr1Points ??= {
   rounds: new Map(),
   history: new Map(),
   pool: emptyPool(),
+  group: new Map(),
 });
 
 class MemoryStore implements PointsStore {
@@ -532,6 +590,19 @@ class MemoryStore implements PointsStore {
       if (d) mem.pool[f] += d;
     }
     return { ...mem.pool };
+  }
+
+  async setGroupExpiry(address: string, until: number) {
+    mem.group.set(address, until);
+  }
+
+  async activeGroupMembers(limit: number) {
+    const now = Date.now();
+    return [...mem.group.entries()]
+      .filter(([, until]) => until >= now)
+      .sort((a, b) => a[1] - b[1])
+      .slice(0, limit)
+      .map(([address, until]) => ({ address, until }));
   }
 }
 

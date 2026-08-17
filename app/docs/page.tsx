@@ -162,10 +162,21 @@ export default function DocsPage() {
           Referrals pay <strong>10%</strong> of everything your invitees earn
           and <strong>3%</strong> from the people they invite — minted on top,
           never subtracted from them. Trading on consecutive days adds a streak
-          multiplier up to ×1.5. Points convert into private group access,
-          weekly token reward pools, free rocket launches and fee rebates; the
+          multiplier up to ×1.5. Points convert into weekly token reward pools,
+          free rocket launches, fee rebates and access to the private group; the
           live rulebook, tiers and leaderboard are on{" "}
           <a href="/points">/points</a>.
+        </p>
+        <p className="docsP">
+          The <strong>private group</strong> is a 30-day subscription costing
+          100,000 points — about $10,000 of swap volume routed through the
+          terminal. The round number sits above a derived floor: a period may
+          never be worth less than the ~$20/month the group costs to run.
+          Renewing early extends from the current expiry, so no day is lost.
+          Because spending
+          shouldn&apos;t demote a paying member, the leaderboard and tiers rank
+          points <em>earned over your lifetime</em>, while the spendable balance
+          is what remains after redemptions and rocket losses.
         </p>
         <p className="docsP">
           Points are also <strong>playable</strong>: the{" "}
