@@ -168,11 +168,12 @@ export default function DocsPage() {
           <a href="/points">/points</a>.
         </p>
         <p className="docsP">
-          The <strong>private group</strong> is a 30-day subscription, and its
-          price is derived rather than invented: a period costs what $20 of
-          platform fees is worth — the group&apos;s real monthly cost — which is
-          roughly $6,667 of swap volume, or 67,000 points. Renewing early
-          extends from the current expiry, so no day is lost. Because spending
+          The <strong>private group</strong> is a 30-day subscription costing
+          100,000 points — about $10,000 of swap volume routed through the
+          terminal. The round number sits above a derived floor: a period may
+          never be worth less than the ~$20/month the group costs to run.
+          Renewing early extends from the current expiry, so no day is lost.
+          Because spending
           shouldn&apos;t demote a paying member, the leaderboard and tiers rank
           points <em>earned over your lifetime</em>, while the spendable balance
           is what remains after redemptions and rocket losses.

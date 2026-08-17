@@ -467,14 +467,15 @@ function GroupCard({
       )}
 
       <p className="ptMuted ptRefBlurb">
-        A period costs what <strong>${GROUP_MONTH_USD} of platform fees</strong>{" "}
-        is worth — the group&apos;s real monthly cost. That is about{" "}
+        A period is priced off what the group actually costs to run (
+        <strong>${GROUP_MONTH_USD}/month</strong>), so it takes about{" "}
         <strong>
           ${Math.round(GROUP_MONTH_VOLUME_USD).toLocaleString("en-US")}
         </strong>{" "}
-        of swap volume routed through the terminal. Points are burned on
-        redemption, and your rank and tier are untouched — the leaderboard ranks
-        points <em>earned</em>, so paying never demotes you.
+        of swap volume routed through the terminal to earn — trade normally and
+        it pays for itself. Points are burned on redemption, and your rank and
+        tier are untouched: the leaderboard ranks points <em>earned</em>, so
+        paying never demotes you.
       </p>
 
       <div className="ptGroupBuy">

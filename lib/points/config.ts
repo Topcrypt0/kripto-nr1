@@ -130,27 +130,48 @@ export function streakMultiplier(streakDays: number): number {
 // ---------------------------------------------------------------------------
 //
 // The group costs the operator at least $20/month to run, so a month of access
-// must be worth at least $20 of fees actually paid to the platform. Rather than
-// inventing a number, the price is DERIVED: how much swap volume pays $20 of
-// interface fees, converted at the swap points rate. Change NEXT_PUBLIC_LIFI_FEE
-// and the price follows automatically.
+// must be worth at least that much in fees actually paid to the platform. The
+// floor is DERIVED rather than invented — how much swap volume pays $20 of
+// interface fees, at the swap points rate — and then rounded UP to a clean
+// 100k, which is both the headline price and a comfortable margin over cost:
 //
-//   $20 / 0.30% fee            = $6,667 of swap volume
-//   $6,667 × 10 pts/$1         = ~66,667 points  → rounded to the nearest 1,000
+//   floor:  $20 / 0.30% fee = $6,667 volume × 10 pts/$1 = ~66,667 points
+//   price:  rounded up to   = 100,000 points
+//           ( = $10,000 of swap volume = $30 of platform fees )
+//
+// Rounding UP rather than to-nearest matters: raise NEXT_PUBLIC_LIFI_FEE or
+// GROUP_MONTH_USD later and the price steps to the next 100k instead of quietly
+// dropping below what the group costs to run.
 
-/** What one month of the group costs the operator, in USD of platform fees. */
+/** What one period of the group costs the operator, in USD of platform fees. */
 export const GROUP_MONTH_USD = 20;
 
 /** Days of access one redemption buys. */
 export const GROUP_PERIOD_DAYS = 30;
 
-/** Volume a user must route to pay GROUP_MONTH_USD in interface fees. */
-export const GROUP_MONTH_VOLUME_USD =
-  LIFI_FEE > 0 ? GROUP_MONTH_USD / LIFI_FEE : 0;
+/** Price step — keeps the headline number readable. */
+const GROUP_PRICE_STEP = 100_000;
 
-/** Points for one 30-day period. Rounded to a readable figure. */
-export const GROUP_MONTH_POINTS =
-  Math.round((GROUP_MONTH_VOLUME_USD * SOURCES.swap.rate) / 1_000) * 1_000 || 67_000;
+/** Points that would exactly cover GROUP_MONTH_USD of fees, before rounding. */
+const groupFloorPoints =
+  LIFI_FEE > 0 ? (GROUP_MONTH_USD / LIFI_FEE) * SOURCES.swap.rate : 0;
+
+/** Points for one 30-day period. */
+export const GROUP_MONTH_POINTS = Math.max(
+  GROUP_PRICE_STEP,
+  Math.ceil(groupFloorPoints / GROUP_PRICE_STEP) * GROUP_PRICE_STEP,
+);
+
+/**
+ * Swap volume the final price actually corresponds to. Derived from the ROUNDED
+ * price, not the floor, so every number the dashboard shows is true of what the
+ * user really pays.
+ */
+export const GROUP_MONTH_VOLUME_USD =
+  GROUP_MONTH_POINTS / SOURCES.swap.rate;
+
+/** Platform fees that volume generates — what the period is worth to the house. */
+export const GROUP_MONTH_FEES_USD = GROUP_MONTH_VOLUME_USD * LIFI_FEE;
 
 /** How far ahead access can be prepaid in one go. */
 export const GROUP_MAX_MONTHS = 12;
@@ -259,9 +280,9 @@ export const REWARDS: Reward[] = [
   {
     emoji: "🔒",
     title: "Private group — 30 days",
-    desc: `Invite to the closed KRIPTO NR.1 group: trade ideas, alpha, direct line to the team. Priced at $${GROUP_MONTH_USD} of platform fees — roughly $${Math.round(
+    desc: `Invite to the closed KRIPTO NR.1 group: trade ideas, alpha, direct line to the team. Costs about $${Math.round(
       GROUP_MONTH_VOLUME_USD,
-    ).toLocaleString("en-US")} of swap volume. Renews per period.`,
+    ).toLocaleString("en-US")} of swap volume — the fees that covers pay for the group. Renews per period.`,
     cost: GROUP_MONTH_POINTS,
     kind: "subscription",
     perPeriod: `${GROUP_PERIOD_DAYS} days`,
