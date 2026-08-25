@@ -1,0 +1,328 @@
+/**
+ * Landing-page copy, carried over from the previous kriptonr1 site.
+ *
+ * The text is kept in Latvian, exactly as it was written for the community;
+ * only the layout around it is new. Everything lives here so the page file
+ * stays about structure rather than strings.
+ */
+
+/** Community links. Set these in .env — see .env.example. */
+const hub = process.env.NEXT_PUBLIC_LINK_HUB || "https://linktr.ee/kriptonr1";
+
+export const SOCIAL = {
+  hub,
+  telegramChannel: process.env.NEXT_PUBLIC_TG_CHANNEL || hub,
+  telegramChat: process.env.NEXT_PUBLIC_TG_CHAT || hub,
+  telegramPrivate: process.env.NEXT_PUBLIC_TG_PRIVATE || hub,
+  youtube: process.env.NEXT_PUBLIC_YOUTUBE || hub,
+  whitelistForm: process.env.NEXT_PUBLIC_WHITELIST_FORM || hub,
+  contact: process.env.NEXT_PUBLIC_CONTACT_TG || hub,
+};
+
+export const SOCIAL_LINKS = [
+  { label: "TELEGRAM KANĀLS", href: SOCIAL.telegramChannel, emoji: "📣" },
+  { label: "TELEGRAM ČATS", href: SOCIAL.telegramChat, emoji: "💬" },
+  { label: "TG PRIVĀTĀ GRUPA", href: SOCIAL.telegramPrivate, emoji: "🔒" },
+  { label: "YOUTUBE KANĀLS", href: SOCIAL.youtube, emoji: "▶️" },
+];
+
+/** The dApp itself — every tab of the terminal. */
+export const TERMINAL = [
+  {
+    href: "/swap",
+    emoji: "🔁",
+    title: "Swap & Bridge",
+    desc: "Labākā maršruta agregators 30+ blokķēdēs un visās lielākajās DEX un tiltos. Viens klikšķis — labākā cena.",
+    cta: "Treidot",
+  },
+  {
+    href: "/perps",
+    emoji: "📈",
+    title: "Perps",
+    desc: "Mūžīgie fjūčeri uz Hyperliquid — līdz 50× svira, CEX līmeņa ātrums, pilnībā on-chain.",
+    cta: "Long / Short",
+  },
+  {
+    href: "/earn",
+    emoji: "🏦",
+    title: "Earn (DeFi)",
+    desc: "Liec stabilkoinus strādāt — pasīvs APY Morpho vaultos un Aave aizdevumos. Izņem jebkurā brīdī.",
+    cta: "Pelnīt",
+  },
+  {
+    href: "/predict",
+    emoji: "🔮",
+    title: "Prognozes",
+    desc: "Dzīvie prognožu tirgi ar Polymarket. Politika, kripto, sports — treido iznākumu.",
+    cta: "Skatīt tirgus",
+  },
+  {
+    href: "/lottery",
+    emoji: "🚀",
+    title: "Raķešu loterija",
+    desc: "Oriģinālā KRIPTO NR.1 raķete. Pierādāmi godīga on-chain spēle uz Base — laimests līdz X10.",
+    cta: "Palaist raķeti",
+  },
+  {
+    href: "/points",
+    emoji: "✨",
+    title: "Punkti un balvas",
+    desc: "Katrs swap, bridge, perp darījums un raķetes palaišana pelna punktus pēc apgrozījuma. Uzaicini draugus par 10% no viņu punktiem, kāp līderu tabulā un atver privāto grupu.",
+    cta: "Mani punkti",
+  },
+];
+
+export const MISSION = {
+  title: "Mūsu misija",
+  lead:
+    "Mūsu misija ir sniegt latviski runājošajiem cilvēkiem zināšanas, palīdzēt saglabāt kapitālu un saskatīt peļņas iespējas, izmantojot kriptoaktīvus.",
+  body:
+    "Kripto joma piedāvā daudzveidīgas peļņas iespējas un nepārtraukti attīstās. Mēs esam gatavi dalīties ar zināšanām, ko jau esam apguvuši, un turpinām mācīties, lai šīs zināšanas nodotu arī jums. Vai vēlaties būt daļa no šī ceļa?",
+  quote:
+    "„Viņi saka – tas ir tikai hype. Mēs sakām – paskaties uz cipariem.” Tu pats izlem, bet mēs dodam faktus.",
+};
+
+/** Kripto Labs — the hub of everything the community runs. */
+export const LABS = [
+  {
+    title: "Kripto Nr.1 Terminālis",
+    desc: "Viss vienuviet: pērc, treido, swapo, bridge, pelni un prognozē.",
+    href: "/swap",
+    emoji: "🖥️",
+  },
+  {
+    title: "Kripto Nr.1 Kursi",
+    desc: "Apmācības par kriptovalūtu, kas piemērotas gan iesācējiem, gan tiem, kuri vēlas padziļināt savas zināšanas.",
+    href: "#kursi",
+    emoji: "🎓",
+  },
+  {
+    title: "Kripto Nr.1 Privātā grupa",
+    desc: "Šī nav tikai grupa — šis ir starts tavai jaunajai dzīvei kripto pasaulē.",
+    href: "#whitelist",
+    emoji: "🔒",
+  },
+  {
+    title: "Kripto Nr.1 Konsultācijas",
+    desc: "Individuālas konsultācijas ar Kripto Nr.1 partneriem — no pirmā maka līdz nodokļiem.",
+    href: "#konsultacijas",
+    emoji: "🤝",
+  },
+  {
+    title: "Kripto Nr.1 Sadarbības",
+    desc: "Mūsu stiprā puse ir partnerība ar kriptovalūtu tehnoloģiju uzņēmumiem.",
+    href: "#partneri",
+    emoji: "🌐",
+  },
+  {
+    title: "Kripto ziņas",
+    desc: "Tekošās dienas jaunumi no kripto pasaules — katru dienu, latviski.",
+    href: SOCIAL.telegramChannel,
+    emoji: "📰",
+    external: true,
+  },
+];
+
+/** Courses and workshops. */
+export const COURSES = [
+  {
+    title: "KRIPTO STARTA KOMPLEKTS",
+    price: "149 € / $",
+    lead:
+      "Vai esi gatavs kripto pasaulei, bet nezini, ar ko sākt? Viss, kas nepieciešams, lai sāktu pārliecinoši un droši.",
+    items: [
+      "Kripto drošība un kriptovalūtu daudzveidība",
+      "Kriptovalūtu pirkšana, pārdošana un kripto portfeļa veidošana",
+      "Nodokļi kripto nozarē",
+      "Treidinga pamati, tehniskā analīze / indikatori un trading boti",
+      "Tirgus psiholoģija, projektu analīze, ilgtermiņa un īstermiņa stratēģija",
+      "NFT un RWA, airdropi un retrodropi",
+      "Memcoini un tap spēles",
+      "Decentralizēto finanšu pamati",
+    ],
+  },
+  {
+    title: "TRADING KURSS",
+    price: "299 € / 299 USDT",
+    lead:
+      "10 nodarbības un vairāk nekā 10 stundas vērtīga materiāla par trading pasauli. Pēc apmaksas tevi pievieno TG grupai ar visiem video materiāliem, kur vari uzdot jautājumus.",
+    items: [
+      "Tradinga pamati",
+      "Tirgus psiholoģija",
+      "Indikatori",
+      "Paterni",
+      "FVG un ICC stratēģijas",
+      "Eliot waves teorija",
+      "Likviditāte",
+      "Un vēl daudz kas cits",
+    ],
+  },
+  {
+    title: "DEFI KURSS",
+    price: "149 € / $",
+    lead:
+      "Vai esi gatavs kaut kam vairāk, bet nezini, ar ko sākt? Viss, kas nepieciešams, lai atvērtu vārtus uz DeFi vidi.",
+    items: [
+      "DeFi ievads",
+      "DeFi struktūra un darbības principi",
+      "Blokķēdes paaudzes — kā mēs tikām līdz paralēlai finanšu sistēmai",
+      "Galvenie DeFi protokolu veidi",
+      "Protokolu pielietojums, DeFi stratēģijas",
+      "Aktīvi, ko izmantot DeFi",
+      "DefiLlama",
+      "Praktiskā nodarbība",
+    ],
+  },
+];
+
+export const EVENTS = [
+  "KRIPTO PAMATI IESĀCĒJIEM II",
+  "DEFI WORKSHOP",
+  "KRIPTO NR.1 PRIVATE EKSKURSIJA",
+  "SARUNA AR VIESTURU TAMUŽU",
+  "KĀ UZLIKT KRIPTO BOTUS",
+  "NODOKĻI KRIPTOVALŪTĀ",
+];
+
+/**
+ * The team. Consultation topics are shown as one shared list because the
+ * old site did not tie a topic list to a single person unambiguously.
+ */
+export const TEAM = [
+  {
+    name: "Vilnis Priedītis",
+    role: "Kripto Nr.1 līdzdibinātājs",
+    bio:
+      "Kripto investors kopš 2020. gada. Uzņēmējs ar vairāk kā 30 gadu pieredzi dažādās biznesa nozarēs. Kripto projekta ditextoken.com un pašizziņas aplikācijas Matchful (matchful.me) izveidotājs. TikTok pazīstams kā Kriptoplikpauris.",
+    rate: "Konsultācijas maksa 70 EUR/h",
+  },
+  {
+    name: "Rihards Pranis",
+    role: "Kripto Nr.1 līdzdibinātājs",
+    bio:
+      "Treideris, ilgtermiņa investors un dažādu veiksmīgu NFT projektu veidotājs, ar pieredzi kripto jomā kopš 2019. gada. Radoša un inovatīva domāšana, spēja ātri pielāgoties mainīgajiem tirgus apstākļiem, kas nodrošina ilgtspējīgu attīstību gan investīciju jomā, gan projektu vadībā.",
+    rate: "Konsultācijas maksa 70 EUR/h",
+  },
+  {
+    name: "Andrejs Kozlovs",
+    role: "Kripto Nr.1 līdzdibinātājs",
+    bio:
+      "Kriptovalūtu un pasīvo ienākumu investors kopš 2021. gada. Mana stiprā puse ir ātri pielāgoties mainīgajiem tirgus apstākļiem, kas palīdz veidot diversificētu un ilgtermiņā ilgtspējīgu investīciju portfeli. Man ir vairāk nekā 10 gadu pieredze pārdošanā un komandu vadībā, kas sniedz stratēģisku redzējumu biznesa attīstībā. Seko man sociālajos tīklos: @MRACRYPTO",
+    rate: "Konsultācijas maksa 70 EUR/h",
+  },
+];
+
+export const CONSULT_TOPICS = [
+  "Kripto pamati no nulles — drošība, maka izveide, naudas iemaksa, pirkšana, pārdošana un pārsūtīšana",
+  "Individuāla portfeļa izveide un investīciju ieteikumi atbilstoši kapitālam un riskam",
+  "Trading pamati — lasīt grafikus un noteikt cenas virzienu",
+  "Decentralizētās (DEX) un centralizētās (CEX) biržas, to lietošana",
+  "Naudas pārskaitīšana, saņemšana un nodokļi kripto nozarē",
+  "DeFi platformas un DeFi pamati",
+  "Padziļināta tirgus analīze un tirgus psiholoģija",
+  "Trading botu izmantošana un futures treidings",
+  "NFT veidošana, pirkšana un pārdošana",
+  "Jaunu un esošu projektu padziļināta analīze — vai tā ir laba investīcija",
+  "Biznesa uzsākšana, biznesa plāna sastādīšana, komandas veidošana",
+];
+
+export const LEGAL_CONSULT = {
+  name: "Lauris Klagišs",
+  role: "Zvērināts advokāts",
+  rate: "Konsultācijas maksa 200 EUR + PVN/h",
+  topics: [
+    "Nodokļu aprēķināšana un nomaksa",
+    "VID darbības metodes un principi",
+    "Legālas iespējas samazināt maksājamo nodokļu apmēru",
+    "Nodokļu jurisdikcijas un nodokļu režīmu izvēle",
+    "Profesionāla pārstāvība Valsts ieņēmumu dienestā",
+    "VID lēmumu pārsūdzēšana",
+    "Pārstāvība administratīvajās tiesās par nodokļu uzrēķiniem",
+    "Klienta sagatavošana Valsts ieņēmumu dienesta pārbaudēm",
+    "Konsultācijas nodokļu maksājumu atlikšanā vai sadalīšanā",
+  ],
+};
+
+export const PARTNERS = [
+  {
+    name: "Bitunix birža",
+    kind: "CEX",
+    desc:
+      "Viena no visstraujāk augošajām CEX biržām, dibināta 2021. gada novembrī. Svarīgi ir tas, ka Bitunix ir ieguvusi ASV un Kanādas MSB licenci, un uzņēmums pašlaik strādā pie citu valstu licenču iegūšanas.",
+  },
+  {
+    name: "Pionex birža",
+    kind: "CEX · boti",
+    desc:
+      "Birža ar automatizētiem tirdzniecības rīkiem: vairāki bezmaksas tirdzniecības roboti (arbitrāža, rebalancing), daudzveidīgas tirdzniecības iespējas un zemas komisijas. Izveidota tā, lai atvieglotu tirdzniecību arī nepieredzējušiem tirgotājiem.",
+  },
+  {
+    name: "Tangem Cold Wallet",
+    kind: "Aparātmaks",
+    desc:
+      "Kripto maks, kas izskatās kā plastikāta kredītkarte. Privātās atslēgas tiek glabātas fiziski uz kartes, nevis ierīcē — EAL6+ sertifikāts. Pieejami komplekti ar 2 vai 3 kartēm un komplekts ar 2 kartēm un gredzenu.",
+  },
+  {
+    name: "Tradeify",
+    kind: "Prop firma",
+    desc:
+      "Strauji augoša prop firma, kas dod pieeju ievērojamam tirdzniecības kapitālam: apliecini prasmes vienkāršotā Challenge procesā un pārvaldi finansētu kontu. Elastīgi noteikumi, moderna tehnoloģiskā bāze un treideriem izdevīga peļņas sadale. Promo kods: KRIPTONR1.",
+  },
+  {
+    name: "TradingView",
+    kind: "Analīze",
+    desc:
+      "Tiešsaistes platforma finanšu tirgu analīzei un tirdzniecībai: grafiku analīze, indikatori, brīdinājumi un plašas watchlist iespējas akcijām, forex un kriptovalūtām. Reģistrējoties ar mūsu linku un iegādājoties maksas plānu, saņem $15 kredītu savam kontam.",
+  },
+];
+
+export const FAQ = [
+  {
+    q: "KAS IR KRIPTOVALŪTA?",
+    a: "Kriptovalūta ir digitāla vai virtuāla valūta, kas izmanto kriptogrāfiju, lai nodrošinātu drošību. Atšķirībā no tradicionālajām valūtām (piemēram, eiro vai dolāra), kriptovalūtām parasti nav fiziskas formas, un tās netiek kontrolētas vai izdotas centrālās bankas vai valdības iestādes. Tās pastāv tikai digitālā formā. Kriptovalūtas darbojas uz blokķēdes tehnoloģijas (blockchain) pamata.",
+  },
+  {
+    q: "KAS IR BLOKĶĒDE?",
+    a: "Blokķēde (angļu valodā: blockchain) ir īpaša digitāla datubāze vai ierakstu grāmata, kas tiek izplatīta (decentralizēta) un pastāvīgi papildināta. Tā ir tehnoloģija, kas atrodas kriptovalūtu, piemēram, Bitcoin vai Ethereum, pamatā, bet to var izmantot arī citos veidos.",
+  },
+  {
+    q: "KĀ STRĀDĀ BLOKĶĒDE?",
+    a: "Bloki (blocks) — informācija tiek glabāta blokos, katrs bloks satur noteiktu datu apjomu (piemēram, darījumus). Ķēde (chain) — katrs jauns bloks tiek piesaistīts iepriekšējam, veidojot „ķēdi”. Decentralizācija — tā vietā, lai dati tiktu glabāti vienā centrālā serverī, blokķēde tiek kopēta un uzturēta daudzos datoros (mezglos) vienlaikus visā pasaulē. Nemainīgums (immutability) — kad bloks ir pievienots ķēdei, to vairs nevar izmainīt vai izdzēst, neizmainot visus nākamos blokus, kas padara krāpšanu praktiski neiespējamu. Caurspīdīgums un pārbaudāmība — visi blokķēdes darījumi ir publiski redzami un pārbaudāmi, bet lietotāju identitāte var palikt anonīma.",
+  },
+  {
+    q: "KAS IR CEX?",
+    a: "CEX ir saīsinājums no centralizēta birža (angļu val.: Centralized Exchange). Tā ir tiešsaistes platforma (Bybit, Bitunix, Binance utt.), kur lietotāji var pirkt, pārdot un tirgot kriptovalūtas, izmantojot starpnieku — pašu biržu. Atšķirībā no DEX (decentralizētas biržas), CEX pārvalda lietotāju līdzekļus, uztur orderu grāmatu un nodrošina klientu apkalpošanu.",
+  },
+  {
+    q: "KAS IR DEX?",
+    a: "DEX ir saīsinājums no decentralizēta birža (angļu val.: Decentralized Exchange). Tā ir kriptovalūtu tirdzniecības platforma (Uniswap, Pancakeswap utt.), kas darbojas bez centrālās autoritātes vai starpnieka (piemēram, bankas vai uzņēmuma). Lietotāji tirgo savas kriptovalūtas tieši savā starpā, izmantojot viedos līgumus (smart contracts) un blokķēdes tehnoloģiju.",
+  },
+  {
+    q: "KUR GLABĀT KRIPTOVALŪTU?",
+    a: "Self-custody maki, kur privātās atslēgas kontrolē tu pats: programmatūras maki (Metamask, Rabby, Phantom) — pilna kontrole un viegli lietot, bet pakļauti riskam, ja dators vai telefons ir apdraudēts; aparātmaki (Tangem, Trezor, Ledger) — maksimāla drošība, jo privātās atslēgas nekad neatstāj ierīci, taču tie maksā ~50–200 € un ir mazāk ērti ikdienai. Centralizētas biržas (Binance, Bitunix, Bybit, Coinbase) ir viegli lietojamas un neprasa privāto atslēgu pārvaldību, bet līdzekļus kontrolē birža.",
+  },
+  {
+    q: "KAS IR SEED PHRASE?",
+    a: "Seed phrase jeb atkopšanas frāze (bieži saukta par backup phrase) ir 12, 24 vai 36 vārdu gara frāze, kuru ģenerē tavs kriptovalūtas maks (piem., Rabby, Ledger, Metamask), kad tu to izveido. Šie vārdi nav nejauši — tie ir izvēlēti no BIP-39 saraksta ar 2048 fiksētiem angļu valodas vārdiem. Tā ir vienīgā atslēga uz tavu maku: ja pazaudē telefonu vai datoru, maku vari atjaunot citā ierīcē tikai ar šo frāzi, un, ja kāds cits to iegūst, viņš var nozagt visu tavu kriptovalūtu pat bez tavas paroles. Pieraksti to uz papīra un noliec drošā vietā — nekad neglabā to kā ekrānuzņēmumu vai mākonī.",
+  },
+];
+
+export const WHITELIST = {
+  title: "Kripto Nr.1 whitelist",
+  body: [
+    "Mūsu privātā grupa kopš 01.01.2026 ir slēgta. Šobrīd pirmo reizi šajā gadā atveram Whitelist nākamajai uzņemšanai!",
+    "Tiešraides laikā publiski parādījām desmitiem veiksmīgu darījumu un vairākus iespaidīgus iksus Robinhood Chain ekosistēmā.",
+  ],
+  notes: [
+    "Whitelist negarantē, ka tiksiet uzņemti.",
+    "Nākamā uzņemšana plānota tikai septembrī–oktobrī.",
+    "Tiks uzņemts tikai ierobežots dalībnieku skaits.",
+  ],
+  outro:
+    "Ja vēlaties rezervēt sev iespēju piedalīties nākamajā uzņemšanā, aizpildiet pieteikumu jau tagad.",
+  privateGroup:
+    "Visvērtīgākā informācija ir pieejama mūsu Telegram „KriptoNr1 Private” grupā — ekskluzīvā kopienā ar ierobežotu piekļuvi, kur dalāmies ar padziļinātiem ieskatiem un iespējām.",
+};
+
+export const DISCLAIMER =
+  "Mēs neesam finanšu padomdevēji un nesniedzam ieguldījumu rekomendācijas. Katrs ieguldīšanas lēmums un ar to saistītie riski pilnībā attiecas uz lēmumu pieņēmēju. Mēs vienkārši dalāmies ar savu pieredzi un zināšanām.";
