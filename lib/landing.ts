@@ -6,17 +6,14 @@
  * stays about structure rather than strings.
  */
 
-/** Community links. Set these in .env — see .env.example. */
-const hub = process.env.NEXT_PUBLIC_LINK_HUB || "https://linktr.ee/kriptonr1";
-
+/** Community links — the real destinations from the Kripto Nr.1 link set. */
 export const SOCIAL = {
-  hub,
-  telegramChannel: process.env.NEXT_PUBLIC_TG_CHANNEL || hub,
-  telegramChat: process.env.NEXT_PUBLIC_TG_CHAT || hub,
-  telegramPrivate: process.env.NEXT_PUBLIC_TG_PRIVATE || hub,
-  youtube: process.env.NEXT_PUBLIC_YOUTUBE || hub,
-  whitelistForm: process.env.NEXT_PUBLIC_WHITELIST_FORM || hub,
-  contact: process.env.NEXT_PUBLIC_CONTACT_TG || hub,
+  telegramChannel: "https://t.me/kriptonr1",
+  telegramChat: "https://t.me/+scpLA_vgetQ2YmJk",
+  telegramPrivate: "https://t.me/tribute/app?startapp=siKw-5jq16tckash",
+  youtube: "https://www.youtube.com/@kriptonr1",
+  whitelistForm:
+    "https://docs.google.com/forms/d/e/1FAIpQLScZS8Qa0fer328np3MWJFq78lvgedyNvFIBU90fy2JvHtTNYA/viewform",
 };
 
 export const SOCIAL_LINKS = [
@@ -25,6 +22,15 @@ export const SOCIAL_LINKS = [
   { label: "TG PRIVĀTĀ GRUPA", href: SOCIAL.telegramPrivate, emoji: "🔒" },
   { label: "YOUTUBE KANĀLS", href: SOCIAL.youtube, emoji: "▶️" },
 ];
+
+/** Payment details, exactly as the old site listed them. */
+export const PAYMENT = {
+  bank: "LV17HABA0551017061332 SIA Digital Tech",
+  bankNote: "Ja nepieciešams, izrakstām rēķinu.",
+  crypto: "0x104D6bee35a0CF9940EE476F48E36fF35997eD76",
+  cryptoNote: "USDT vai USDC — BEP20 vai Polygon tīklā.",
+  outro: "Piedāvājums ir ierobežots. Droši uzraksti mums Telegram.",
+};
 
 /** The dApp itself — every tab of the terminal. */
 export const TERMINAL = [
@@ -71,6 +77,21 @@ export const TERMINAL = [
     cta: "Mani punkti",
   },
 ];
+
+/** Produkti — the merch page from the old site. */
+export const PRODUCTS = {
+  title: "Ienirsti kripto pasaulē ar Kripto Nr.1 produktiem",
+  desc:
+    "Parādi savu kripto pārliecību ar stilu – mūsu produkti ir vairāk nekā tikai produkti, tas ir tavs skatījums uz brīvību un tehnoloģiju nākotni, kas runā tavā valodā.",
+};
+
+/** Kripto ziņas — the daily news feed the community runs. */
+export const NEWS = {
+  title: "Kripto ziņas",
+  lead: "TEKOŠĀS DIENAS JAUNUMI — katru dienu, latviski.",
+  desc:
+    "Katru dienu apkopojam svarīgāko no kripto pasaules: ETF, regulējums, institūciju darījumi, tokenu palaišanas un tirgus kustības. Viss latviski, mūsu Telegram kanālā.",
+};
 
 export const MISSION = {
   title: "Mūsu misija",
@@ -128,8 +149,10 @@ export const COURSES = [
   {
     title: "KRIPTO STARTA KOMPLEKTS",
     price: "149 € / $",
+    headline: "SĀC SAVU KRIPTO CEĻU AR VISU, KAS NEPIECIEŠAMS!",
     lead:
-      "Vai esi gatavs kripto pasaulei, bet nezini, ar ko sākt? Viss, kas nepieciešams, lai sāktu pārliecinoši un droši.",
+      "Vai esi gatavs kripto pasaulei, bet nezini, ar ko sākt? Mums ir īpašs piedāvājums iesācējiem – viss, kas nepieciešams, lai sāktu pārliecinoši un droši. Padziļinātais kurss iesācējiem – soli pa solim par visu svarīgo: drošība, pirkšana, peļņas iespējas, stratēģijas un vēl daudz kas cits.",
+    value: "Vērtība > 200 €/$ — Tu iegūsti visu par 149 €/$.",
     items: [
       "Kripto drošība un kriptovalūtu daudzveidība",
       "Kriptovalūtu pirkšana, pārdošana un kripto portfeļa veidošana",
@@ -144,8 +167,10 @@ export const COURSES = [
   {
     title: "TRADING KURSS",
     price: "299 € / 299 USDT",
+    headline: "PACEL SEVI JAUNĀ LĪMENĪ AR TRADING APMĀCĪBĀM",
     lead:
-      "10 nodarbības un vairāk nekā 10 stundas vērtīga materiāla par trading pasauli. Pēc apmaksas tevi pievieno TG grupai ar visiem video materiāliem, kur vari uzdot jautājumus.",
+      "Esam izstrādājuši kursu, kas ietver 10 nodarbības un vairāk nekā 10 stundas vērtīga materiāla par trading pasauli. Pēc apmaksas tevi pievienos TG grupai, kur būs visi video materiāli un kur droši varēsi uzdot sev interesējošos un neskaidros jautājumus.",
+    value: "Apmācību maksa 299 €/299 USDT, standartā 374.",
     items: [
       "Tradinga pamati",
       "Tirgus psiholoģija",
@@ -160,8 +185,10 @@ export const COURSES = [
   {
     title: "DEFI KURSS",
     price: "149 € / $",
+    headline: "ATVER SAVU KRIPTO PASAULI AR DEFI",
     lead:
-      "Vai esi gatavs kaut kam vairāk, bet nezini, ar ko sākt? Viss, kas nepieciešams, lai atvērtu vārtus uz DeFi vidi.",
+      "Vai esi gatavs kaut kam vairāk, bet nezini, ar ko sākt? Mums ir īpašs piedāvājums – viss, kas nepieciešams, lai atvērtu vārtus uz DeFi vidi: drošība, DeFi struktūra un darbības principi, protokolu pielietojums, DeFi stratēģijas un vēl daudz kas cits.",
+    value: "Vērtība > 200 €/$ — Tu iegūsti visu par 149 €/$.",
     items: [
       "DeFi ievads",
       "DeFi struktūra un darbības principi",
@@ -195,6 +222,8 @@ export const TEAM = [
     bio:
       "Kripto investors kopš 2020. gada. Uzņēmējs ar vairāk kā 30 gadu pieredzi dažādās biznesa nozarēs. Kripto projekta ditextoken.com un pašizziņas aplikācijas Matchful (matchful.me) izveidotājs. TikTok pazīstams kā Kriptoplikpauris.",
     rate: "Konsultācijas maksa 70 EUR/h",
+    telegram: "https://t.me/VilnisPrieditis",
+    handle: "@VilnisPrieditis",
   },
   {
     name: "Rihards Pranis",
@@ -202,6 +231,8 @@ export const TEAM = [
     bio:
       "Treideris, ilgtermiņa investors un dažādu veiksmīgu NFT projektu veidotājs, ar pieredzi kripto jomā kopš 2019. gada. Radoša un inovatīva domāšana, spēja ātri pielāgoties mainīgajiem tirgus apstākļiem, kas nodrošina ilgtspējīgu attīstību gan investīciju jomā, gan projektu vadībā.",
     rate: "Konsultācijas maksa 70 EUR/h",
+    telegram: "https://t.me/RihardsPranis",
+    handle: "@RihardsPranis",
   },
   {
     name: "Andrejs Kozlovs",
@@ -209,6 +240,8 @@ export const TEAM = [
     bio:
       "Kriptovalūtu un pasīvo ienākumu investors kopš 2021. gada. Mana stiprā puse ir ātri pielāgoties mainīgajiem tirgus apstākļiem, kas palīdz veidot diversificētu un ilgtermiņā ilgtspējīgu investīciju portfeli. Man ir vairāk nekā 10 gadu pieredze pārdošanā un komandu vadībā, kas sniedz stratēģisku redzējumu biznesa attīstībā. Seko man sociālajos tīklos: @MRACRYPTO",
     rate: "Konsultācijas maksa 70 EUR/h",
+    telegram: "https://t.me/mracryptoo",
+    handle: "@mracryptoo",
   },
 ];
 

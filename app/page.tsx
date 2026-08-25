@@ -3,6 +3,9 @@ import { BuyCrypto } from "@/components/BuyCrypto";
 import {
   CONSULT_TOPICS,
   COURSES,
+  NEWS,
+  PAYMENT,
+  PRODUCTS,
   DISCLAIMER,
   EVENTS,
   FAQ,
@@ -20,11 +23,13 @@ import {
 const NAV = [
   { href: "#terminalis", label: "Terminālis" },
   { href: "#labs", label: "Kripto Labs" },
+  { href: "#produkti", label: "Produkti" },
   { href: "#kursi", label: "Kursi" },
   { href: "#konsultacijas", label: "Konsultācijas" },
   { href: "#partneri", label: "Partneri" },
   { href: "#komanda", label: "Komanda" },
   { href: "#zinasanas", label: "Zināšanas" },
+  { href: "#zinas", label: "Kripto ziņas" },
   { href: "#kontakti", label: "Kontakti" },
 ];
 
@@ -79,11 +84,18 @@ export default function Home() {
       </section>
 
       <nav className="lpJump">
-        {NAV.map((n) => (
-          <a key={n.href} href={n.href} className="lpJumpLink">
-            {n.label}
-          </a>
-        ))}
+        <div className="lpJumpLinks">
+          {NAV.map((n) => (
+            <a key={n.href} href={n.href} className="lpJumpLink">
+              {n.label}
+            </a>
+          ))}
+        </div>
+        {/* The terminal keeps its own button, always in reach while scrolling. */}
+        <Link href="/swap" className="lpJumpDapp">
+          <span className="lpJumpDappFull">🖥️ ATVĒRT DAPP TERMINĀLI</span>
+          <span className="lpJumpDappShort">🖥️ TERMINĀLIS</span>
+        </Link>
       </nav>
 
       {/* ---------- the dApp ---------- */}
@@ -171,6 +183,22 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ---------- produkti (merch) ---------- */}
+      <section id="produkti" className="lpSection">
+        <div className="lpPanel lpPanelPad lpProducts">
+          <h2 className="lpH2">{PRODUCTS.title}</h2>
+          <p className="lpLead">{PRODUCTS.desc}</p>
+          <a
+            href={SOCIAL.telegramChannel}
+            target="_blank"
+            rel="noreferrer"
+            className="lpBtn lpBtnGhost"
+          >
+            APSKATĪTIES
+          </a>
+        </div>
+      </section>
+
       {/* ---------- courses ---------- */}
       <section id="kursi" className="lpSection">
         <div className="lpSectionHead">
@@ -188,22 +216,35 @@ export default function Home() {
                 <h3 className="lpCardTitle">{c.title}</h3>
                 <span className="lpPrice">{c.price}</span>
               </div>
+              <p className="lpCourseHeadline">{c.headline}</p>
               <p className="lpCardDesc">{c.lead}</p>
               <ul className="lpList">
                 {c.items.map((i) => (
                   <li key={i}>{i}</li>
                 ))}
               </ul>
-              <a
-                href={SOCIAL.contact}
-                target="_blank"
-                rel="noreferrer"
-                className="lpBtn lpBtnGhost lpBtnBlock"
-              >
+              <p className="lpValue">{c.value}</p>
+              <a href="#kontakti" className="lpBtn lpBtnGhost lpBtnBlock">
                 Pieteikties
               </a>
             </article>
           ))}
+        </div>
+        <div className="lpPanel lpPanelPad lpPay">
+          <h3 className="lpH3">Apmaksa</h3>
+          <dl className="lpPayRows">
+            <div>
+              <dt>Ar pārskaitījumu</dt>
+              <dd className="lpMono">{PAYMENT.bank}</dd>
+              <dd className="lpMuted">{PAYMENT.bankNote}</dd>
+            </div>
+            <div>
+              <dt>Ar kripto</dt>
+              <dd className="lpMono lpAddr">{PAYMENT.crypto}</dd>
+              <dd className="lpMuted">{PAYMENT.cryptoNote}</dd>
+            </div>
+          </dl>
+          <p className="lpP lpMuted">{PAYMENT.outro}</p>
         </div>
         <div className="lpPanel lpPanelPad lpEvents">
           <h3 className="lpH3">Workshopi un ieraksti</h3>
@@ -296,6 +337,14 @@ export default function Home() {
               <p className="lpRole">{m.role}</p>
               <p className="lpCardDesc">{m.bio}</p>
               <p className="lpRate">{m.rate}</p>
+              <a
+                href={m.telegram}
+                target="_blank"
+                rel="noreferrer"
+                className="lpBtn lpBtnGhost lpBtnBlock"
+              >
+                💬 {m.handle}
+              </a>
             </article>
           ))}
         </div>
@@ -351,6 +400,23 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ---------- kripto ziņas ---------- */}
+      <section id="zinas" className="lpSection">
+        <div className="lpPanel lpPanelPad lpNews">
+          <h2 className="lpH2">{NEWS.title}</h2>
+          <p className="lpNewsLead">{NEWS.lead}</p>
+          <p className="lpLead">{NEWS.desc}</p>
+          <a
+            href={SOCIAL.telegramChannel}
+            target="_blank"
+            rel="noreferrer"
+            className="lpBtn lpBtnPrimary"
+          >
+            📣 LASĪT ZIŅAS
+          </a>
+        </div>
+      </section>
+
       {/* ---------- community & contact ---------- */}
       <section id="kontakti" className="lpSection">
         <div className="lpPanel lpPanelPad lpContact">
@@ -360,6 +426,24 @@ export default function Home() {
             Pievienojies mūsu sociālajiem tīkliem!
           </p>
           <Socials />
+          <p className="lpP lpMuted lpContactNote">
+            Lai pieteiktos konsultācijai vai kursam, sazinies ar izvēlēto
+            Kripto Nr. 1 partneri privāti Telegram:
+          </p>
+          <div className="lpSocials">
+            {TEAM.map((m) => (
+              <a
+                key={m.name}
+                href={m.telegram}
+                target="_blank"
+                rel="noreferrer"
+                className="lpSocial"
+              >
+                <span aria-hidden>💬</span>
+                {m.name} · {m.handle}
+              </a>
+            ))}
+          </div>
         </div>
       </section>
 

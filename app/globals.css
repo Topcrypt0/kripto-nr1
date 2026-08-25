@@ -1374,17 +1374,29 @@ code { background: rgba(255, 255, 255, .1); padding: 1px 5px; border-radius: 5px
 .lpBtnBlock { display: block; margin-top: auto; text-align: center; }
 
 .lpJump {
-  display: flex; gap: 8px; flex-wrap: wrap; margin: 18px 0 4px;
-  padding: 10px; border-radius: 16px;
-  border: 1px solid rgba(255,255,255,.07); background: rgba(255,255,255,.025);
+  position: sticky; top: 62px; z-index: 20;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin: 18px 0 4px; padding: 10px; border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.07);
+  background: rgba(8,11,26,.86); backdrop-filter: blur(10px);
 }
+.lpJumpLinks { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 200px; }
+.lpJumpDappShort { display: none; }
+/* The dApp gets its own button, separate from the section links. */
+.lpJumpDapp {
+  padding: 11px 20px; border-radius: 12px; text-decoration: none; white-space: nowrap;
+  font-size: 12.5px; font-weight: 800; letter-spacing: .4px;
+  color: #fff; background: linear-gradient(180deg, #ff7a5c, #e8442b);
+  box-shadow: 0 8px 22px rgba(232,68,43,.38);
+}
+.lpJumpDapp:hover { filter: brightness(1.07); }
 .lpJumpLink {
   padding: 7px 14px; border-radius: 999px; text-decoration: none;
   font-size: 13px; font-weight: 600; color: #cdd6f5;
 }
 .lpJumpLink:hover { background: rgba(255,255,255,.07); color: #fff; }
 
-.lpSection { margin-top: 48px; scroll-margin-top: 20px; }
+.lpSection { margin-top: 48px; scroll-margin-top: 160px; }
 .lpSectionHead { margin-bottom: 18px; }
 .lpH2 { margin: 0 0 10px; font-size: clamp(24px, 3.4vw, 34px); font-weight: 700; letter-spacing: -.3px; }
 .lpH3 { margin: 0 0 12px; font-size: 17px; font-weight: 700; }
@@ -1428,9 +1440,11 @@ code { background: rgba(255, 255, 255, .1); padding: 1px 5px; border-radius: 5px
 .lpDappSub { margin-top: 4px; font-size: 13.5px; color: var(--muted); }
 .lpDappBtns { display: flex; gap: 10px; flex-wrap: wrap; }
 
-.lpCourseHead, .lpPartnerHead {
+.lpPartnerHead {
   display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap;
 }
+/* Title above price, so cards line up whatever the course name's length. */
+.lpCourseHead { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; }
 .lpPrice {
   font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; white-space: nowrap;
   padding: 4px 11px; border-radius: 999px;
@@ -1506,8 +1520,45 @@ code { background: rgba(255, 255, 255, .1); padding: 1px 5px; border-radius: 5px
 .lpFootMuted { color: #5f6ea3; }
 
 @media (max-width: 720px) {
+  /* One compact sticky row: links scroll sideways, the dApp button stays put. */
+  .lpJump { top: 85px; padding: 8px; gap: 8px; flex-wrap: nowrap; }
+  .lpJumpLinks {
+    flex-wrap: nowrap; overflow-x: auto; min-width: 0; scrollbar-width: none;
+  }
+  .lpJumpLinks::-webkit-scrollbar { display: none; }
+  .lpJumpLink { white-space: nowrap; }
+  .lpJumpDapp { padding: 10px 14px; font-size: 11.5px; }
+  .lpJumpDappFull { display: none; }
+  .lpJumpDappShort { display: inline; }
+  .lpSection { scroll-margin-top: 150px; }
   .lpHero { padding: 34px 22px 32px; }
   .lpHeroImg { opacity: .16; right: -80px; }
   .lpPanelPad { padding: 20px; }
   .lpDappBar { padding: 20px; }
 }
+
+/* ---------- landing: products, payment, news ---------- */
+.lpCourseHeadline {
+  margin: 0; font-size: 12.5px; font-weight: 800; letter-spacing: .4px; color: #ffd98a;
+}
+.lpValue {
+  margin: 12px 0 14px; padding: 9px 13px; border-radius: 11px;
+  font-size: 12.5px; font-weight: 700; color: #cdd6f5;
+  border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.04);
+}
+.lpProducts, .lpNews { text-align: center; }
+.lpProducts .lpLead, .lpNews .lpLead { margin: 0 auto 18px; }
+.lpNewsLead {
+  margin: 0 0 10px; font-size: 12.5px; font-weight: 800; letter-spacing: 1px; color: #ffd98a;
+}
+.lpPay { margin-top: 14px; }
+.lpPayRows { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 0 0 14px; }
+.lpPayRows dt {
+  margin-bottom: 6px; font-size: 11.5px; font-weight: 800; letter-spacing: .6px; color: #8b97c7;
+  text-transform: uppercase;
+}
+.lpPayRows dd { margin: 0 0 4px; font-size: 13.5px; line-height: 1.5; color: #cdd6f5; }
+.lpPayRows dd.lpMuted { font-size: 12.5px; }
+.lpMono { font-family: 'JetBrains Mono', monospace; }
+.lpAddr { overflow-wrap: anywhere; }
+.lpContactNote { margin: 22px 0 12px; }
