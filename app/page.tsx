@@ -4,43 +4,77 @@ import {
   ART,
   CONSULT_TOPICS,
   COURSES,
-  NEWS,
-  PAYMENT,
-  PRODUCTS,
+  COURSES_HEAD,
   DISCLAIMER,
-  EVENTS,
   FAQ,
+  HERO,
   LABS,
+  LABS_HEAD,
   LEGAL_CONSULT,
   MISSION,
+  NEWS,
   PARTNERS,
+  PAYMENT,
+  PRODUCTS,
+  PRODUCTS_HEAD,
   SOCIAL,
-  SOCIAL_LINKS,
   TEAM,
   TERMINAL,
   WHITELIST,
 } from "@/lib/landing";
 
 const NAV = [
-  { href: "#terminalis", label: "Terminālis" },
+  { href: "#sakums", label: "Sākums" },
   { href: "#labs", label: "Kripto Labs" },
   { href: "#produkti", label: "Produkti" },
-  { href: "#kursi", label: "Kursi" },
   { href: "#konsultacijas", label: "Konsultācijas" },
-  { href: "#partneri", label: "Partneri" },
+  { href: "#partneri", label: "Sadarbības partneri" },
   { href: "#komanda", label: "Komanda" },
-  { href: "#zinasanas", label: "Zināšanas" },
-  { href: "#zinas", label: "Kripto ziņas" },
   { href: "#kontakti", label: "Kontakti" },
 ];
 
-function Socials() {
+// The old site also showed Facebook and TikTok; those URLs aren't known yet.
+const SOCIALS = [
+  { label: "Telegram", href: SOCIAL.telegramChannel, cls: "kTg" },
+  { label: "YouTube", href: SOCIAL.youtube, cls: "kYt" },
+];
+
+/** Brand glyphs, drawn inline so the page stays self-contained. */
+function Glyph({ kind }: { kind: string }) {
+  if (kind === "kYt") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden>
+        <path
+          fill="currentColor"
+          d="M23 12s0-3.8-.5-5.6a2.9 2.9 0 0 0-2-2C18.7 4 12 4 12 4s-6.7 0-8.5.4a2.9 2.9 0 0 0-2 2C1 8.2 1 12 1 12s0 3.8.5 5.6a2.9 2.9 0 0 0 2 2C5.3 20 12 20 12 20s6.7 0 8.5-.4a2.9 2.9 0 0 0 2-2C23 15.8 23 12 23 12ZM9.8 15.4V8.6l5.9 3.4-5.9 3.4Z"
+        />
+      </svg>
+    );
+  }
   return (
-    <div className="lpSocials">
-      {SOCIAL_LINKS.map((s) => (
-        <a key={s.label} href={s.href} target="_blank" rel="noreferrer" className="lpSocial">
-          <span aria-hidden>{s.emoji}</span>
-          {s.label}
+    <svg viewBox="0 0 24 24" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M21.9 4.3 18.8 19c-.2 1-.9 1.3-1.8.8l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.4-5 9.1-8.2c.4-.4-.1-.6-.6-.2L6.4 12.9l-4.8-1.5c-1-.3-1-1 .2-1.5l18.7-7.2c.9-.3 1.6.2 1.4 1.6Z"
+      />
+    </svg>
+  );
+}
+
+function SocialRow({ big = false }: { big?: boolean }) {
+  return (
+    <div className={big ? "kSocials kSocialsBig" : "kSocials"}>
+      {SOCIALS.map((s) => (
+        <a
+          key={s.label}
+          href={s.href}
+          target="_blank"
+          rel="noreferrer"
+          className={`kSocial ${s.cls}`}
+          title={s.label}
+          aria-label={s.label}
+        >
+          <Glyph kind={s.cls} />
         </a>
       ))}
     </div>
@@ -49,312 +83,288 @@ function Socials() {
 
 export default function Home() {
   return (
-    <main className="lp">
-      {/* ---------- hero: the decentralised terminal ---------- */}
-      <section className="lpHero">
-        <img src={ART.topBg} alt="" className="lpHeroBg" />
-        <img src="/hero.png" alt="" className="lpHeroImg" />
-        <div className="lpHeroInner">
-          <span className="lpEyebrow">KRIPTO <span className="accent">NR.1</span> · KRIPTO LATVISKI, VISS VIENUVIET</span>
-          <h1 className="lpHeroTitle">
-            IZMĒĢINI MŪSU
-            <br />
-            <span className="lpHeroAccent">DECENTRALIZĒTO</span>
-            <br />
-            KRIPTO TERMINĀLI
-          </h1>
-          <p className="lpHeroTag">
-            Viss vienuviet: pērc, treido, swapo, bridge, pelni un prognozē.
-            Bez konta, bez depozīta — tavs maks, tavi līdzekļi. 🚀
-          </p>
-          <div className="lpHeroBtns">
-            <Link href="/swap" className="lpBtn lpBtnPrimary">
-              Atvērt termināli
-            </Link>
-            <BuyCrypto />
-            <Link href="/lottery" className="lpBtn lpBtnGhost">
-              🚀 Raķešu loterija
-            </Link>
-          </div>
-          <div className="lpHeroFacts">
-            <span>Non-custodial</span>
-            <span>30+ blokķēdes</span>
-            <span>Atvērtais pirmkods</span>
-            <span>Base</span>
-          </div>
-        </div>
-      </section>
-
-      <nav className="lpJump">
-        <div className="lpJumpLinks">
+    <main
+      className="k"
+      style={
+        {
+          // The old site's falling-coin artwork, used by .kCoins sections.
+          "--coinsL": `url(${ART.bottomLeftBg})`,
+          "--coinsR": `url(${ART.bottomRightBg})`,
+        } as React.CSSProperties
+      }
+    >
+      {/* ---------- site bar, in the old site's own layout ---------- */}
+      <nav className="kBar">
+        <div className="kBarLinks">
           {NAV.map((n) => (
-            <a key={n.href} href={n.href} className="lpJumpLink">
+            <a key={n.href} href={n.href} className="kBarLink">
               {n.label}
             </a>
           ))}
         </div>
-        {/* The terminal keeps its own button, always in reach while scrolling. */}
-        <Link href="/swap" className="lpJumpDapp">
-          <span className="lpJumpDappFull">🖥️ ATVĒRT DAPP TERMINĀLI</span>
-          <span className="lpJumpDappShort">🖥️ TERMINĀLIS</span>
-        </Link>
+        <div className="kBarRight">
+          <a href="#whitelist" className="kRedBtn kBarWhitelist">
+            Whitelist
+          </a>
+          <SocialRow />
+        </div>
       </nav>
 
-      {/* ---------- the dApp ---------- */}
-      <section id="terminalis" className="lpSection">
-        <div className="lpSectionHead">
-          <h2 className="lpH2">Kripto Nr.1 Terminālis</h2>
-          <p className="lpLead">
-            Mūsu dApp — decentralizēta platforma, kas savieno labākos kripto
-            protokolus vienā vietā. Tu paraksti katru darījumu pats, mēs neturam
-            tavus līdzekļus.
+      {/* ---------- Sākums ---------- */}
+      <section id="sakums" className="kHero">
+        <img src={ART.heroCoins} alt="" className="kHeroBg" />
+        <div className="kHeroInner">
+          <h1 className="kHeroTitle">
+            Izmēģini mūsu <span className="kAccent">decentralizēto</span> kripto
+            termināli
+          </h1>
+          <p className="kHeroSub">
+            Viss vienuviet: pērc, treido, swapo, bridge, pelni un prognozē.
+            Bez konta un bez depozīta — tavs maks, tavi līdzekļi.
           </p>
+          <div className="kHeroBtns">
+            <Link href="/swap" className="kRedBtn kRedBtnLg">
+              ATVĒRT DAPP TERMINĀLI
+            </Link>
+            <BuyCrypto />
+          </div>
+          <h2 className="kHeroTitle2">{HERO.title}</h2>
+          <p className="kHeroSub">{HERO.desc}</p>
+          <div className="kHeroBtns">
+            <a href={SOCIAL.telegramChannel} target="_blank" rel="noreferrer" className="kRedBtn">
+              TELEGRAM KANĀLS <Glyph kind="kTg" />
+            </a>
+            <a href={SOCIAL.telegramChat} target="_blank" rel="noreferrer" className="kRedBtn">
+              TELEGRAM ČATS <Glyph kind="kTg" />
+            </a>
+            <a href={SOCIAL.telegramPrivate} target="_blank" rel="noreferrer" className="kRedBtn">
+              TG PRIVĀTĀ GRUPA <Glyph kind="kTg" />
+            </a>
+          </div>
+          <img src={ART.phone} alt="" className="kHeroPhone" />
         </div>
-        <div className="lpGrid">
+      </section>
+
+      {/* ---------- the dApp ---------- */}
+      <section id="terminalis" className="kSection">
+        <h2 className="kH2">Kripto Nr.1 Terminālis</h2>
+        <p className="kLead">
+          Mūsu dApp — decentralizēta platforma, kas savieno labākos kripto
+          protokolus vienā vietā. Tu paraksti katru darījumu pats, mēs neturam
+          tavus līdzekļus.
+        </p>
+        <div className="kGrid kGrid3">
           {TERMINAL.map((p) => (
-            <Link key={p.href} href={p.href} className="lpCard lpCardLink">
-              <div className="lpCardEmoji">{p.emoji}</div>
-              <div className="lpCardTitle">{p.title}</div>
-              <div className="lpCardDesc">{p.desc}</div>
-              <div className="lpCardCta">{p.cta} →</div>
+            <Link key={p.href} href={p.href} className="kCard kCardLink">
+              <div className="kCardEmoji">{p.emoji}</div>
+              <h3 className="kCardTitleW">{p.title}</h3>
+              <p className="kCardDesc">{p.desc}</p>
+              <span className="kMore">{p.cta} →</span>
             </Link>
           ))}
         </div>
-        <div className="lpDappBar">
-          <img src={ART.terminal} alt="" className="lpDappImg" />
-          <div>
-            <div className="lpDappTitle">Gatavs sākt?</div>
-            <div className="lpDappSub">
-              Pievieno maku un izmēģini termināli — vai izlasi, kā tas darbojas.
+        <div className="kCenter">
+          <Link href="/swap" className="kRedBtn kRedBtnLg">
+            ATVĒRT DAPP TERMINĀLI
+          </Link>
+        </div>
+      </section>
+
+      {/* ---------- Mūsu misija ---------- */}
+      <section id="misija" className="kSection kCoins">
+        <h2 className="kH2">{MISSION.title}</h2>
+        <div className="kMission">
+          {[MISSION.lead, WHITELIST.privateGroup, MISSION.body].map((t, i) => (
+            <div key={t} className="kMissionCol">
+              <div className="kMissionIcon">
+                <img src={MISSION.icons[i]} alt="" />
+              </div>
+              <p className="kMissionText">{t}</p>
             </div>
-          </div>
-          <div className="lpDappBtns">
-            <Link href="/swap" className="lpBtn lpBtnPrimary">
-              Atvērt dApp
-            </Link>
-            <Link href="/docs" className="lpBtn lpBtnGhost">
-              Dokumentācija
-            </Link>
-          </div>
+          ))}
         </div>
+        <p className="kJoin">
+          Ienirsti kripto pasaulē – sarunas, zināšanas un atbalsts. Pievienojies
+          mūsu sociālajiem tīkliem!
+        </p>
+        <SocialRow big />
       </section>
 
-      {/* ---------- who we are ---------- */}
-      <section className="lpSection">
-        <div className="lpTwoCol">
-          <div className="lpPanel lpPanelPad">
-            <h2 className="lpH2">Kripto latviski, viss vienuviet!</h2>
-            <p className="lpP">
-              Kripto Nr. 1 – vadošais kriptovalūtu medijs un kopiena Latvijā.
-              Piedāvājam kvalitatīvu saturu, aktualitātes, apmācības un
-              diskusijas latviešu valodā.
-            </p>
-            <p className="lpQuote">{MISSION.quote}</p>
-          </div>
-          <div className="lpPanel lpPanelPad">
-            <div className="lpMissionIcons">
-              {MISSION.icons.map((src) => (
-                <img key={src} src={src} alt="" className="lpMissionIcon" />
-              ))}
-            </div>
-            <h2 className="lpH2">{MISSION.title}</h2>
-            <p className="lpP">{MISSION.lead}</p>
-            <p className="lpP lpMuted">{MISSION.body}</p>
-          </div>
-        </div>
-      </section>
-
-      {/* ---------- kripto labs ---------- */}
-      <section id="labs" className="lpSection">
-        <div className="lpSectionHead">
-          <h2 className="lpH2">Kripto Nr.1 Labs</h2>
-          <p className="lpLead">Lietas, kas noderēs, uzsākot ceļu kriptovalūtā.</p>
-        </div>
-        <div className="lpGrid">
-          {LABS.map((l) =>
-            l.external ? (
-              <a key={l.title} href={l.href} target="_blank" rel="noreferrer" className="lpCard lpCardLink">
-                <div className="lpCardEmoji">{l.emoji}</div>
-                <div className="lpCardTitle">{l.title}</div>
-                <div className="lpCardDesc">{l.desc}</div>
-                <div className="lpCardCta">Apskatīties →</div>
-              </a>
-            ) : (
-              <Link key={l.title} href={l.href} className="lpCard lpCardLink">
-                <div className="lpCardEmoji">{l.emoji}</div>
-                <div className="lpCardTitle">{l.title}</div>
-                <div className="lpCardDesc">{l.desc}</div>
-                <div className="lpCardCta">Apskatīties →</div>
-              </Link>
-            )
-          )}
-        </div>
-      </section>
-
-      {/* ---------- produkti (merch) ---------- */}
-      <section id="produkti" className="lpSection">
-        <div className="lpPanel lpPanelPad lpProducts">
-          <img src={ART.products} alt="" className="lpWideImg" />
-          <h2 className="lpH2">{PRODUCTS.title}</h2>
-          <p className="lpLead">{PRODUCTS.desc}</p>
-          <a
-            href={SOCIAL.telegramChannel}
-            target="_blank"
-            rel="noreferrer"
-            className="lpBtn lpBtnGhost"
-          >
-            APSKATĪTIES
-          </a>
+      {/* ---------- Kripto Labs ---------- */}
+      <section id="labs" className="kSection">
+        <h2 className="kH2">{LABS_HEAD.title}</h2>
+        <p className="kLead">{LABS_HEAD.desc}</p>
+        <div className="kLabs">
+          {LABS.map((title) => (
+            <a
+              key={title}
+              href={SOCIAL.youtube}
+              target="_blank"
+              rel="noreferrer"
+              className="kCard kLabCard"
+            >
+              <h3 className="kCardTitle">{title}</h3>
+              <span className="kPlay" aria-hidden>
+                <Glyph kind="kYt" />
+              </span>
+              <span className="kMore">Skatīties YouTube →</span>
+            </a>
+          ))}
         </div>
       </section>
 
       {/* ---------- courses ---------- */}
-      <section id="kursi" className="lpSection">
-        <div className="lpSectionHead">
-          <h2 className="lpH2">Apmācības un kursi</h2>
-          <p className="lpLead">
-            Mūsdienu digitālajā laikmetā kriptovalūtas kļūst par nozīmīgu
-            finanšu pasaules daļu. Nepietiek tikai ar vēlmi ieguldīt —
-            nepieciešamas zināšanas, lai pieņemtu pārdomātus un drošus lēmumus.
+      <section id="kursi" className="kSection kCoins">
+        <h2 className="kH2">{COURSES_HEAD.title}</h2>
+        {COURSES_HEAD.desc.map((d) => (
+          <p key={d} className="kLead">
+            {d}
           </p>
-        </div>
-        <div className="lpGrid lpGrid3">
-          {COURSES.map((c) => (
-            <article key={c.title} className="lpCard">
-              <img src={c.img} alt="" className="lpCourseImg" />
-              <div className="lpCourseHead">
-                <h3 className="lpCardTitle">{c.title}</h3>
-                <span className="lpPrice">{c.price}</span>
-              </div>
-              <p className="lpCourseHeadline">{c.headline}</p>
-              <p className="lpCardDesc">{c.lead}</p>
-              <ul className="lpList">
+        ))}
+        {COURSES.map((c) => (
+          <article key={c.title} className="kCard kCourse">
+            <img src={c.img} alt="" className="kCourseImg" />
+            <div className="kCourseBody">
+              <h3 className="kCardTitle">{c.title}</h3>
+              <ul className="kList">
                 {c.items.map((i) => (
                   <li key={i}>{i}</li>
                 ))}
               </ul>
-              <p className="lpValue">{c.value}</p>
-              <a href="#kontakti" className="lpBtn lpBtnGhost lpBtnBlock">
-                Pieteikties
+              <p className="kCourseHeadline">{c.headline}</p>
+              <p className="kCourseValue">{c.value}</p>
+              <p className="kPrice">{c.price}</p>
+            </div>
+            <div className="kCourseCta">
+              <a href="#kontakti" className="kRedBtn">
+                PIETEIKTIES
               </a>
-            </article>
-          ))}
-        </div>
-        <div className="lpPanel lpPanelPad lpPay">
-          <h3 className="lpH3">Apmaksa</h3>
-          <dl className="lpPayRows">
-            <div>
-              <dt>Ar pārskaitījumu</dt>
-              <dd className="lpMono">{PAYMENT.bank}</dd>
-              <dd className="lpMuted">{PAYMENT.bankNote}</dd>
             </div>
-            <div>
-              <dt>Ar kripto</dt>
-              <dd className="lpMono lpAddr">{PAYMENT.crypto}</dd>
-              <dd className="lpMuted">{PAYMENT.cryptoNote}</dd>
-            </div>
-          </dl>
-          <p className="lpP lpMuted">{PAYMENT.outro}</p>
-        </div>
-        <div className="lpPanel lpPanelPad lpEvents">
-          <h3 className="lpH3">Workshopi un ieraksti</h3>
-          <div className="lpChips">
-            {EVENTS.map((e) => (
-              <span key={e} className="lpChip">
-                {e}
-              </span>
-            ))}
-          </div>
-          <p className="lpP lpMuted">
-            Katru otro otrdienu 20:00 ieslēdz YouTube – mēs esam tiešraidē kopā ar tevi!
+          </article>
+        ))}
+        <div className="kCard kPay">
+          <h3 className="kCardTitle">APMAKSA</h3>
+          <p className="kPayRow">
+            <span>Ar pārskaitījumu:</span> <b>{PAYMENT.bank}</b>
           </p>
+          <p className="kPayNote">{PAYMENT.bankNote}</p>
+          <p className="kPayRow">
+            <span>Adrese apmaksai ar kripto:</span>{" "}
+            <b className="kAddr">{PAYMENT.crypto}</b>
+          </p>
+          <p className="kPayNote">{PAYMENT.cryptoNote}</p>
+          <p className="kPayNote">{PAYMENT.outro}</p>
         </div>
       </section>
 
-      {/* ---------- consultations ---------- */}
-      <section id="konsultacijas" className="lpSection">
-        <div className="lpSectionHead">
-          <h2 className="lpH2">Konsultācijas</h2>
-          <p className="lpLead">
-            Lai pieteiktos konsultācijai, sazinies ar izvēlēto Kripto Nr. 1
-            partneri privāti Telegram.
-          </p>
+      {/* ---------- Produkti ---------- */}
+      <section id="produkti" className="kSection kCoins">
+        <h2 className="kH2">{PRODUCTS_HEAD.title}</h2>
+        <p className="kLead">{PRODUCTS_HEAD.desc}</p>
+        <div className="kGrid kGrid2">
+          {PRODUCTS.map((p) => (
+            <article key={p.title} className="kCard kProduct">
+              <h3 className="kCardTitleW">{p.title}</h3>
+              <p className="kCardDesc">{p.desc}</p>
+              <img src={p.img} alt="" className="kProductImg" />
+              {p.internal ? (
+                <Link href={p.more} className="kMoreLink">
+                  Vairāk informācijas šeit!
+                </Link>
+              ) : (
+                <a href={p.more} className="kMoreLink">
+                  Vairāk informācijas šeit!
+                </a>
+              )}
+              {p.internal ? (
+                <Link href={p.more} className="kRedBtn">
+                  {p.cta}
+                </Link>
+              ) : (
+                <a href="#kontakti" className="kRedBtn">
+                  {p.cta}
+                </a>
+              )}
+            </article>
+          ))}
         </div>
-        <div className="lpTwoCol">
-          <div className="lpPanel lpPanelPad">
-            <h3 className="lpH3">TĒMAS KONSULTĀCIJĀM</h3>
-            <ul className="lpList">
+      </section>
+
+      {/* ---------- Konsultācijas ---------- */}
+      <section id="konsultacijas" className="kSection">
+        <h2 className="kH2">Konsultācijas</h2>
+        <p className="kLead">
+          Lai pieteiktos konsultācijai, sazinies ar izvēlēto Kripto Nr. 1
+          partneri privāti Telegram.
+        </p>
+        <div className="kGrid kGrid2">
+          <article className="kCard">
+            <h3 className="kCardTitle">TĒMAS KONSULTĀCIJĀM</h3>
+            <ul className="kList">
               {CONSULT_TOPICS.map((t) => (
                 <li key={t}>{t}</li>
               ))}
             </ul>
-            <p className="lpRate">Konsultācijas maksa 70 EUR/h</p>
-          </div>
-          <div className="lpPanel lpPanelPad">
+            <p className="kRate">Konsultācijas maksa 70 EUR/h</p>
+          </article>
+          <article className="kCard kCenterCard">
             <img
               src={LEGAL_CONSULT.photo}
               alt={LEGAL_CONSULT.name}
-              className="lpAvatar"
+              className="kAvatar"
             />
-            <h3 className="lpH3">{LEGAL_CONSULT.name}</h3>
-            <p className="lpRole">{LEGAL_CONSULT.role}</p>
-            <ul className="lpList">
+            <h3 className="kCardTitleW">{LEGAL_CONSULT.name}</h3>
+            <p className="kRole">{LEGAL_CONSULT.role}</p>
+            <ul className="kList kListLeft">
               {LEGAL_CONSULT.topics.map((t) => (
                 <li key={t}>{t}</li>
               ))}
             </ul>
-            <p className="lpRate">{LEGAL_CONSULT.rate}</p>
-          </div>
+            <p className="kRate">{LEGAL_CONSULT.rate}</p>
+          </article>
         </div>
       </section>
 
-      {/* ---------- partners ---------- */}
-      <section id="partneri" className="lpSection">
-        <div className="lpSectionHead">
-          <h2 className="lpH2">Sadarbības partneri</h2>
-          <p className="lpLead">
-            Mūsu stiprā puse ir partnerība ar kriptovalūtu tehnoloģiju
-            uzņēmumiem. Tā nodrošina mums piekļuvi mūsdienīgiem risinājumiem un
-            dod drošību, efektivitāti ikvienā darījumā.
-          </p>
-        </div>
-        <div className="lpGrid">
+      {/* ---------- Sadarbības partneri ---------- */}
+      <section id="partneri" className="kSection kCoins">
+        <h2 className="kH2">Sadarbības partneri</h2>
+        <p className="kLead">
+          Mūsu stiprā puse ir partnerība ar kriptovalūtu tehnoloģiju
+          uzņēmumiem. Tā nodrošina mums piekļuvi mūsdienīgiem risinājumiem un
+          dod drošību, efektivitāti ikvienā darījumā.
+        </p>
+        <div className="kGrid kGrid3">
           {PARTNERS.map((p) => (
-            <article key={p.name} className="lpCard">
-              <img src={p.img} alt="" className="lpPartnerImg" />
-              <div className="lpPartnerHead">
-                <h3 className="lpCardTitle">{p.name}</h3>
-                <span className="lpTag">{p.kind}</span>
-              </div>
-              <p className="lpCardDesc">{p.desc}</p>
+            <article key={p.name} className="kCard kProduct">
+              <h3 className="kCardTitleW">{p.name}</h3>
+              <img src={p.img} alt="" className="kProductImg" />
+              <p className="kCardDesc">{p.desc}</p>
+              <a href="#kontakti" className="kMoreLink">
+                Vairāk informācija šeit!
+              </a>
             </article>
           ))}
         </div>
       </section>
 
-      {/* ---------- team ---------- */}
-      <section id="komanda" className="lpSection">
-        <div className="lpSectionHead">
-          <h2 className="lpH2">Komanda</h2>
-          <p className="lpLead">
-            Ienirsti kripto pasaulē ar mums — cilvēkiem, kas šo ceļu jau ir izgājuši.
-          </p>
-        </div>
-        <div className="lpGrid lpGrid3">
+      {/* ---------- Komanda ---------- */}
+      <section id="komanda" className="kSection">
+        <h2 className="kH2">Komanda</h2>
+        <div className="kGrid kGrid3">
           {TEAM.map((m) => (
-            <article key={m.name} className="lpCard">
-              <img src={m.photo} alt={m.name} className="lpAvatar" />
-              <h3 className="lpCardTitle">{m.name}</h3>
-              <p className="lpRole">{m.role}</p>
-              <p className="lpCardDesc">{m.bio}</p>
-              <p className="lpRate">{m.rate}</p>
+            <article key={m.name} className="kCard kCenterCard">
+              <img src={m.photo} alt={m.name} className="kAvatar" />
+              <h3 className="kCardTitleW">{m.name}</h3>
+              <p className="kRole">{m.role}</p>
+              <p className="kCardDesc">{m.bio}</p>
+              <p className="kRate">{m.rate}</p>
               <a
                 href={m.telegram}
                 target="_blank"
                 rel="noreferrer"
-                className="lpBtn lpBtnGhost lpBtnBlock lpTgBtn"
+                className="kTgBtn"
               >
-                <img src={m.tgIcon} alt="" className="lpTgIcon" />
+                <img src={m.tgIcon} alt="" />
                 {m.handle}
               </a>
             </article>
@@ -362,31 +372,27 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ---------- private group / whitelist ---------- */}
-      <section id="whitelist" className="lpSection">
-        <div className="lpPanel lpPanelPad lpWhitelist">
-          <img src={ART.privateGroup} alt="" className="lpWideImg" />
-          <h2 className="lpH2">{WHITELIST.title}</h2>
-          {WHITELIST.body.map((b) => (
-            <p key={b} className="lpP">
-              {b}
-            </p>
-          ))}
-          <p className="lpP lpMuted">{WHITELIST.privateGroup}</p>
-          <div className="lpNotes">
-            <div className="lpNotesTitle">Svarīgi:</div>
-            <ul className="lpList">
-              {WHITELIST.notes.map((n) => (
-                <li key={n}>{n}</li>
-              ))}
-            </ul>
-          </div>
-          <p className="lpP">{WHITELIST.outro}</p>
+      {/* ---------- Whitelist / privātā grupa ---------- */}
+      <section id="whitelist" className="kSection kCoins">
+        <h2 className="kH2">{WHITELIST.title}</h2>
+        {WHITELIST.body.map((b) => (
+          <p key={b} className="kLead">
+            {b}
+          </p>
+        ))}
+        <div className="kCard kCenterCard">
+          <p className="kNotesTitle">Svarīgi:</p>
+          <ul className="kList kListLeft">
+            {WHITELIST.notes.map((n) => (
+              <li key={n}>{n}</li>
+            ))}
+          </ul>
+          <p className="kCardDesc">{WHITELIST.outro}</p>
           <a
             href={SOCIAL.whitelistForm}
             target="_blank"
             rel="noreferrer"
-            className="lpBtn lpBtnPrimary"
+            className="kRedBtn"
           >
             PIETEIKTIES
           </a>
@@ -394,86 +400,74 @@ export default function Home() {
       </section>
 
       {/* ---------- knowledge base ---------- */}
-      <section id="zinasanas" className="lpSection">
-        <div className="lpSectionHead">
-          <h2 className="lpH2">Kripto zināšanas</h2>
-          <p className="lpLead">
-            ...kas palīdzēs Tev saprast kripto un sasniegt rezultātus! Dalāmies
-            ar zināšanām par blokķēdi, tirdzniecību, investīcijām un airdropiem,
-            lai Tu varētu droši un pārliecinoši virzīties kripto pasaulē.
-          </p>
-        </div>
-        <div className="lpFaq">
+      <section id="zinasanas" className="kSection">
+        <h2 className="kH2">Kripto zināšanas</h2>
+        <p className="kLead">
+          ...kas palīdzēs Tev saprast kripto un sasniegt rezultātus! Dalāmies ar
+          zināšanām par blokķēdi, tirdzniecību, investīcijām un airdropiem, lai
+          Tu varētu droši un pārliecinoši virzīties kripto pasaulē.
+        </p>
+        <div className="kFaq">
           {FAQ.map((f) => (
-            <details key={f.q} className="lpFaqItem">
-              <summary className="lpFaqQ">{f.q}</summary>
-              <p className="lpFaqA">{f.a}</p>
+            <details key={f.q} className="kCard kFaqItem">
+              <summary className="kFaqQ">{f.q}</summary>
+              <p className="kFaqA">{f.a}</p>
             </details>
           ))}
         </div>
       </section>
 
-      {/* ---------- kripto ziņas ---------- */}
-      <section id="zinas" className="lpSection">
-        <div className="lpPanel lpPanelPad lpNews">
-          <img src={ART.news} alt="" className="lpWideImg" />
-          <h2 className="lpH2">{NEWS.title}</h2>
-          <p className="lpNewsLead">{NEWS.lead}</p>
-          <p className="lpLead">{NEWS.desc}</p>
+      {/* ---------- Kripto ziņas ---------- */}
+      <section id="zinas" className="kSection kCoins">
+        <h2 className="kH2">{NEWS.title}</h2>
+        <p className="kEyebrow">{NEWS.lead}</p>
+        <p className="kLead">{NEWS.desc}</p>
+        <div className="kCenter">
           <a
             href={SOCIAL.telegramChannel}
             target="_blank"
             rel="noreferrer"
-            className="lpBtn lpBtnPrimary"
+            className="kRedBtn"
           >
-            📣 LASĪT ZIŅAS
+            LASĪT ZIŅAS
           </a>
         </div>
       </section>
 
-      {/* ---------- community & contact ---------- */}
-      <section id="kontakti" className="lpSection">
-        <div className="lpPanel lpPanelPad lpContact">
-          <h2 className="lpH2">Sazinies ar mums</h2>
-          <p className="lpLead">
-            Ienirsti kripto pasaulē – sarunas, zināšanas un atbalsts.
-            Pievienojies mūsu sociālajiem tīkliem!
-          </p>
-          <Socials />
-          <p className="lpP lpMuted lpContactNote">
-            Lai pieteiktos konsultācijai vai kursam, sazinies ar izvēlēto
-            Kripto Nr. 1 partneri privāti Telegram:
-          </p>
-          <div className="lpSocials">
-            {TEAM.map((m) => (
-              <a
-                key={m.name}
-                href={m.telegram}
-                target="_blank"
-                rel="noreferrer"
-                className="lpSocial"
-              >
-                <span aria-hidden>💬</span>
-                {m.name} · {m.handle}
-              </a>
-            ))}
-          </div>
+      {/* ---------- Kontakti ---------- */}
+      <section id="kontakti" className="kSection">
+        <h2 className="kH2">Sazinies ar mums</h2>
+        <p className="kJoin">
+          Ienirsti kripto pasaulē – sarunas, zināšanas un atbalsts. Pievienojies
+          mūsu sociālajiem tīkliem!
+        </p>
+        <SocialRow big />
+        <p className="kLead">
+          Lai pieteiktos konsultācijai vai kursam, sazinies ar izvēlēto Kripto
+          Nr. 1 partneri privāti Telegram:
+        </p>
+        <div className="kCenter kContacts">
+          {TEAM.map((m) => (
+            <a
+              key={m.name}
+              href={m.telegram}
+              target="_blank"
+              rel="noreferrer"
+              className="kTgBtn"
+            >
+              <img src={m.tgIcon} alt="" />
+              {m.name} · {m.handle}
+            </a>
+          ))}
         </div>
       </section>
 
-      <footer className="lpFoot">
-        <p className="lpDisclaimer">{DISCLAIMER}</p>
-        <div className="lpFootRow">
-          <span>
-            KRIPTO NR.1 · atvērtais pirmkods · non-custodial ·{" "}
-            <Link href="/docs" className="lpFootLink">
-              dokumentācija
-            </Link>
-          </span>
-          <span className="lpFootMuted">
-            Routing by LI.FI · Perps by Hyperliquid · Markets by Polymarket
-          </span>
-        </div>
+      <footer className="kFoot">
+        <p className="kDisclaimer">{DISCLAIMER}</p>
+        <p className="kFootRow">
+          KRIPTO NR.1 · atvērtais pirmkods · non-custodial ·{" "}
+          <Link href="/docs">dokumentācija</Link>
+        </p>
       </footer>
     </main>
   );

@@ -19,6 +19,8 @@ export const ART = {
   bottomLeftBg: M("43dac4_d122fd48296b45ef94d928621b2f9ab2~mv2.png"),
   bottomRightBg: M("43dac4_4057df11f50d45c38e489ca7c9ff5f67~mv2.png"),
   terminal: M("8ce3a2_cd1f565bc777404abd630fc9f58629bb~mv2.png"),
+  heroCoins: M("43dac4_b8b453f513f54865b4cd289fb9ad8c0d~mv2.jpg"),
+  phone: M("43dac4_cab0e8c612754c2fa3a3be6c418397b7~mv2.png"),
   privateGroup: M("8ce3a2_b037940efc0346139aa9c38defc23c30~mv2.png"),
   products: M("8ce3a2_7e1e7da3a1c249c9abe24dca47a1ff4b~mv2.png"),
   news: M("8ce3a2_a721d5e6dfbc41dbb2235e6535ec1a6a~mv2.jpg"),
@@ -99,12 +101,45 @@ export const TERMINAL = [
   },
 ];
 
-/** Produkti — the merch page from the old site. */
-export const PRODUCTS = {
-  title: "Ienirsti kripto pasaulē ar Kripto Nr.1 produktiem",
+/** Produkti — the four cards from the old site's Produkti page. */
+export const PRODUCTS_HEAD = {
+  title: "Ienirsti kripto pasaulē ar Kripto nr.1 produktiem",
   desc:
     "Parādi savu kripto pārliecību ar stilu – mūsu produkti ir vairāk nekā tikai produkti, tas ir tavs skatījums uz brīvību un tehnoloģiju nākotni, kas runā tavā valodā.",
 };
+
+export const PRODUCTS = [
+  {
+    title: "Kripto Nr.1 Kursi",
+    desc:
+      "Nepietiek tikai ar vēlmi ieguldīt — nepieciešamas zināšanas, lai pieņemtu pārdomātus un drošus lēmumus.",
+    img: M("8ce3a2_ae6bbfabb7fc4d7e849a5e333df63fd0~mv2.png"),
+    more: "#kursi",
+    cta: "IEGĀDĀTIES",
+  },
+  {
+    title: "Kripto Nr.1 Privātā grupa",
+    desc: "Šī nav tikai grupa — šis ir starts tavai jaunajai dzīvei kripto pasaulē.",
+    img: M("8ce3a2_b037940efc0346139aa9c38defc23c30~mv2.png"),
+    more: "#whitelist",
+    cta: "IEGĀDĀTIES",
+  },
+  {
+    title: "Kripto Nr.1 konsultācijas",
+    desc: "Pieredze un zināšans kas noderēs",
+    img: M("8ce3a2_40822f98a5c34cbc81e10c0b05b679b7~mv2.png"),
+    more: "#konsultacijas",
+    cta: "IEGĀDĀTIES",
+  },
+  {
+    title: "Kripto Nr.1 Terminālis",
+    desc: "Viss vienuviet: pērc, treido, swapo, bridge, pelni un prognozē.",
+    img: M("8ce3a2_cd1f565bc777404abd630fc9f58629bb~mv2.png"),
+    more: "/swap",
+    cta: "ATVĒRT",
+    internal: true,
+  },
+];
 
 /** Kripto ziņas — the daily news feed the community runs. */
 export const NEWS = {
@@ -125,46 +160,36 @@ export const MISSION = {
     "„Viņi saka – tas ir tikai hype. Mēs sakām – paskaties uz cipariem.” Tu pats izlem, bet mēs dodam faktus.",
 };
 
-/** Kripto Labs — the hub of everything the community runs. */
+/**
+ * Kripto Labs — the video library. The old site embeds each lesson from
+ * YouTube; until the video ids are to hand these link to the channel.
+ */
+export const LABS_HEAD = {
+  title: "Kripto Nr.1 Labs",
+  desc: "Lietas, kas noderēs, uzsākot ceļu kriptovalūtā.",
+};
+
 export const LABS = [
-  {
-    title: "Kripto Nr.1 Terminālis",
-    desc: "Viss vienuviet: pērc, treido, swapo, bridge, pelni un prognozē.",
-    href: "/swap",
-    emoji: "🖥️",
-  },
-  {
-    title: "Kripto Nr.1 Kursi",
-    desc: "Apmācības par kriptovalūtu, kas piemērotas gan iesācējiem, gan tiem, kuri vēlas padziļināt savas zināšanas.",
-    href: "#kursi",
-    emoji: "🎓",
-  },
-  {
-    title: "Kripto Nr.1 Privātā grupa",
-    desc: "Šī nav tikai grupa — šis ir starts tavai jaunajai dzīvei kripto pasaulē.",
-    href: "#whitelist",
-    emoji: "🔒",
-  },
-  {
-    title: "Kripto Nr.1 Konsultācijas",
-    desc: "Individuālas konsultācijas ar Kripto Nr.1 partneriem — no pirmā maka līdz nodokļiem.",
-    href: "#konsultacijas",
-    emoji: "🤝",
-  },
-  {
-    title: "Kripto Nr.1 Sadarbības",
-    desc: "Mūsu stiprā puse ir partnerība ar kriptovalūtu tehnoloģiju uzņēmumiem.",
-    href: "#partneri",
-    emoji: "🌐",
-  },
-  {
-    title: "Kripto ziņas",
-    desc: "Tekošās dienas jaunumi no kripto pasaules — katru dienu, latviski.",
-    href: SOCIAL.telegramChannel,
-    emoji: "📰",
-    external: true,
-  },
+  "KRIPTO IESĀCĒJIEM",
+  "KRIPTO PAMATI IESĀCĒJIEM II",
+  "DEFI WORKSHOP",
+  "KRIPTO NR.1 PRIVATE EKSKURSIJA",
+  "SARUNA AR VIESTURU TAMUŽU",
+  "KĀ UZLIKT KRIPTO BOTUS",
+  "NODOKĻI KRIPTOVALŪTĀ",
+  "KUR GLABĀT KRIPTOVALŪTU?",
+  "KAS IR SEED PHRASE?",
+  "TEKOŠĀS DIENAS JAUNUMI",
 ];
+
+export const COURSES_HEAD = {
+  title: "Ienirsti kripto pasaulē ar mums!",
+  desc: [
+    "Mūsdienu digitālajā laikmetā kriptovalūtas kļūst par nozīmīgu finanšu pasaules daļu.",
+    "Nepietiek tikai ar vēlmi ieguldīt — nepieciešamas zināšanas, lai pieņemtu pārdomātus un drošus lēmumus.",
+    "Apmācības par kriptovalūtu, kas piemērotas gan iesācējiem, gan tiem, kuri vēlas padziļināt savas zināšanas.",
+  ],
+};
 
 /** Courses and workshops. */
 export const COURSES = [
@@ -226,6 +251,12 @@ export const COURSES = [
     ],
   },
 ];
+
+export const HERO = {
+  title: "Kripto latviski, viss vienuviet!",
+  desc:
+    "Kripto Nr. 1 – vadošais kriptovalūtu medijs un kopiena Latvijā. Piedāvājam kvalitatīvu saturu, aktualitātes, apmācības un diskusijas latviešu valodā.",
+};
 
 export const EVENTS = [
   "KRIPTO PAMATI IESĀCĒJIEM II",
