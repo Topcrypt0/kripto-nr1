@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BuyCrypto } from "@/components/BuyCrypto";
 import {
+  ART,
   CONSULT_TOPICS,
   COURSES,
   NEWS,
@@ -51,6 +52,7 @@ export default function Home() {
     <main className="lp">
       {/* ---------- hero: the decentralised terminal ---------- */}
       <section className="lpHero">
+        <img src={ART.topBg} alt="" className="lpHeroBg" />
         <img src="/hero.png" alt="" className="lpHeroImg" />
         <div className="lpHeroInner">
           <span className="lpEyebrow">KRIPTO <span className="accent">NR.1</span> · KRIPTO LATVISKI, VISS VIENUVIET</span>
@@ -119,6 +121,7 @@ export default function Home() {
           ))}
         </div>
         <div className="lpDappBar">
+          <img src={ART.terminal} alt="" className="lpDappImg" />
           <div>
             <div className="lpDappTitle">Gatavs sākt?</div>
             <div className="lpDappSub">
@@ -149,6 +152,11 @@ export default function Home() {
             <p className="lpQuote">{MISSION.quote}</p>
           </div>
           <div className="lpPanel lpPanelPad">
+            <div className="lpMissionIcons">
+              {MISSION.icons.map((src) => (
+                <img key={src} src={src} alt="" className="lpMissionIcon" />
+              ))}
+            </div>
             <h2 className="lpH2">{MISSION.title}</h2>
             <p className="lpP">{MISSION.lead}</p>
             <p className="lpP lpMuted">{MISSION.body}</p>
@@ -186,6 +194,7 @@ export default function Home() {
       {/* ---------- produkti (merch) ---------- */}
       <section id="produkti" className="lpSection">
         <div className="lpPanel lpPanelPad lpProducts">
+          <img src={ART.products} alt="" className="lpWideImg" />
           <h2 className="lpH2">{PRODUCTS.title}</h2>
           <p className="lpLead">{PRODUCTS.desc}</p>
           <a
@@ -212,6 +221,7 @@ export default function Home() {
         <div className="lpGrid lpGrid3">
           {COURSES.map((c) => (
             <article key={c.title} className="lpCard">
+              <img src={c.img} alt="" className="lpCourseImg" />
               <div className="lpCourseHead">
                 <h3 className="lpCardTitle">{c.title}</h3>
                 <span className="lpPrice">{c.price}</span>
@@ -281,6 +291,11 @@ export default function Home() {
             <p className="lpRate">Konsultācijas maksa 70 EUR/h</p>
           </div>
           <div className="lpPanel lpPanelPad">
+            <img
+              src={LEGAL_CONSULT.photo}
+              alt={LEGAL_CONSULT.name}
+              className="lpAvatar"
+            />
             <h3 className="lpH3">{LEGAL_CONSULT.name}</h3>
             <p className="lpRole">{LEGAL_CONSULT.role}</p>
             <ul className="lpList">
@@ -306,6 +321,7 @@ export default function Home() {
         <div className="lpGrid">
           {PARTNERS.map((p) => (
             <article key={p.name} className="lpCard">
+              <img src={p.img} alt="" className="lpPartnerImg" />
               <div className="lpPartnerHead">
                 <h3 className="lpCardTitle">{p.name}</h3>
                 <span className="lpTag">{p.kind}</span>
@@ -327,12 +343,7 @@ export default function Home() {
         <div className="lpGrid lpGrid3">
           {TEAM.map((m) => (
             <article key={m.name} className="lpCard">
-              <div className="lpAvatar" aria-hidden>
-                {m.name
-                  .split(" ")
-                  .map((w) => w[0])
-                  .join("")}
-              </div>
+              <img src={m.photo} alt={m.name} className="lpAvatar" />
               <h3 className="lpCardTitle">{m.name}</h3>
               <p className="lpRole">{m.role}</p>
               <p className="lpCardDesc">{m.bio}</p>
@@ -341,9 +352,10 @@ export default function Home() {
                 href={m.telegram}
                 target="_blank"
                 rel="noreferrer"
-                className="lpBtn lpBtnGhost lpBtnBlock"
+                className="lpBtn lpBtnGhost lpBtnBlock lpTgBtn"
               >
-                💬 {m.handle}
+                <img src={m.tgIcon} alt="" className="lpTgIcon" />
+                {m.handle}
               </a>
             </article>
           ))}
@@ -353,6 +365,7 @@ export default function Home() {
       {/* ---------- private group / whitelist ---------- */}
       <section id="whitelist" className="lpSection">
         <div className="lpPanel lpPanelPad lpWhitelist">
+          <img src={ART.privateGroup} alt="" className="lpWideImg" />
           <h2 className="lpH2">{WHITELIST.title}</h2>
           {WHITELIST.body.map((b) => (
             <p key={b} className="lpP">
@@ -403,6 +416,7 @@ export default function Home() {
       {/* ---------- kripto ziņas ---------- */}
       <section id="zinas" className="lpSection">
         <div className="lpPanel lpPanelPad lpNews">
+          <img src={ART.news} alt="" className="lpWideImg" />
           <h2 className="lpH2">{NEWS.title}</h2>
           <p className="lpNewsLead">{NEWS.lead}</p>
           <p className="lpLead">{NEWS.desc}</p>

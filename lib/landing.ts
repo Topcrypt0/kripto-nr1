@@ -6,6 +6,27 @@
  * stays about structure rather than strings.
  */
 
+/**
+ * Photos and artwork still live in the old site's Wix media library, so they
+ * are served straight from Wix's CDN — the ids below are the same assets the
+ * previous kriptonr1 site used.
+ */
+const M = (id: string) => `https://static.wixstatic.com/media/${id}`;
+
+export const ART = {
+  logo: M("43dac4_8a4903eda5004de089a6c97b60e74576~mv2.png"),
+  topBg: M("43dac4_ae5b3e22fd8f44e9b73a8b7d4b95bfb7~mv2.png"),
+  bottomLeftBg: M("43dac4_d122fd48296b45ef94d928621b2f9ab2~mv2.png"),
+  bottomRightBg: M("43dac4_4057df11f50d45c38e489ca7c9ff5f67~mv2.png"),
+  terminal: M("8ce3a2_cd1f565bc777404abd630fc9f58629bb~mv2.png"),
+  privateGroup: M("8ce3a2_b037940efc0346139aa9c38defc23c30~mv2.png"),
+  products: M("8ce3a2_7e1e7da3a1c249c9abe24dca47a1ff4b~mv2.png"),
+  news: M("8ce3a2_a721d5e6dfbc41dbb2235e6535ec1a6a~mv2.jpg"),
+  handshake: M("43dac4_18b1bd02f4af4e2aa0826c9c2ec0b978~mv2.png"),
+  tech: M("43dac4_b457ddc58fb84a38b35fd251d739b731~mv2.png"),
+  developing: M("43dac4_a671a323b11f4be58db89fd49dd92657~mv2.png"),
+};
+
 /** Community links — the real destinations from the Kripto Nr.1 link set. */
 export const SOCIAL = {
   telegramChannel: "https://t.me/kriptonr1",
@@ -95,6 +116,7 @@ export const NEWS = {
 
 export const MISSION = {
   title: "Mūsu misija",
+  icons: [ART.handshake, ART.tech, ART.developing],
   lead:
     "Mūsu misija ir sniegt latviski runājošajiem cilvēkiem zināšanas, palīdzēt saglabāt kapitālu un saskatīt peļņas iespējas, izmantojot kriptoaktīvus.",
   body:
@@ -148,6 +170,7 @@ export const LABS = [
 export const COURSES = [
   {
     title: "KRIPTO STARTA KOMPLEKTS",
+    img: M("43dac4_db27d703928a41f99cf3fc6bb14832b0~mv2.png"),
     price: "149 € / $",
     headline: "SĀC SAVU KRIPTO CEĻU AR VISU, KAS NEPIECIEŠAMS!",
     lead:
@@ -166,6 +189,7 @@ export const COURSES = [
   },
   {
     title: "TRADING KURSS",
+    img: M("43dac4_4ab1e06a25b841a68bd06d07922c9a31~mv2.png"),
     price: "299 € / 299 USDT",
     headline: "PACEL SEVI JAUNĀ LĪMENĪ AR TRADING APMĀCĪBĀM",
     lead:
@@ -184,6 +208,7 @@ export const COURSES = [
   },
   {
     title: "DEFI KURSS",
+    img: M("43dac4_b3b173f21f104c5a89808e9e1097738c~mv2.png"),
     price: "149 € / $",
     headline: "ATVER SAVU KRIPTO PASAULI AR DEFI",
     lead:
@@ -224,6 +249,8 @@ export const TEAM = [
     rate: "Konsultācijas maksa 70 EUR/h",
     telegram: "https://t.me/VilnisPrieditis",
     handle: "@VilnisPrieditis",
+    photo: M("43dac4_193bb93a1adc492d8cc8ff950733b92f~mv2.png"),
+    tgIcon: M("43dac4_5c69a2cc6204445bbda46fd48dca4d87~mv2.png"),
   },
   {
     name: "Rihards Pranis",
@@ -233,6 +260,8 @@ export const TEAM = [
     rate: "Konsultācijas maksa 70 EUR/h",
     telegram: "https://t.me/RihardsPranis",
     handle: "@RihardsPranis",
+    photo: M("8ce3a2_1659c70421c144e0b03d97311fb06204~mv2.jpg"),
+    tgIcon: M("43dac4_9c9305e6ac774f3984aade0b7e743393~mv2.png"),
   },
   {
     name: "Andrejs Kozlovs",
@@ -242,6 +271,8 @@ export const TEAM = [
     rate: "Konsultācijas maksa 70 EUR/h",
     telegram: "https://t.me/mracryptoo",
     handle: "@mracryptoo",
+    photo: M("43dac4_bc1b7ec2a35d4ad096a483dfd210c69b~mv2.jpg"),
+    tgIcon: M("43dac4_5e2399dd9d254eb3b0fc9ef9a2478c4e~mv2.png"),
   },
 ];
 
@@ -262,6 +293,7 @@ export const CONSULT_TOPICS = [
 export const LEGAL_CONSULT = {
   name: "Lauris Klagišs",
   role: "Zvērināts advokāts",
+  photo: M("8ce3a2_4785b80395f74b70b43ee6441249b278~mv2.jpeg"),
   rate: "Konsultācijas maksa 200 EUR + PVN/h",
   topics: [
     "Nodokļu aprēķināšana un nomaksa",
@@ -279,30 +311,35 @@ export const LEGAL_CONSULT = {
 export const PARTNERS = [
   {
     name: "Bitunix birža",
+    img: M("8ce3a2_662aacd74b244587823b052ffc14e0d2~mv2.jpg"),
     kind: "CEX",
     desc:
       "Viena no visstraujāk augošajām CEX biržām, dibināta 2021. gada novembrī. Svarīgi ir tas, ka Bitunix ir ieguvusi ASV un Kanādas MSB licenci, un uzņēmums pašlaik strādā pie citu valstu licenču iegūšanas.",
   },
   {
     name: "Pionex birža",
+    img: M("8ce3a2_d8785e879efb4f019cb30064eae06750~mv2.jpg"),
     kind: "CEX · boti",
     desc:
       "Birža ar automatizētiem tirdzniecības rīkiem: vairāki bezmaksas tirdzniecības roboti (arbitrāža, rebalancing), daudzveidīgas tirdzniecības iespējas un zemas komisijas. Izveidota tā, lai atvieglotu tirdzniecību arī nepieredzējušiem tirgotājiem.",
   },
   {
     name: "Tangem Cold Wallet",
+    img: M("8ce3a2_b50a3085ecc047f6a1700ea81e84d454~mv2.jpg"),
     kind: "Aparātmaks",
     desc:
       "Kripto maks, kas izskatās kā plastikāta kredītkarte. Privātās atslēgas tiek glabātas fiziski uz kartes, nevis ierīcē — EAL6+ sertifikāts. Pieejami komplekti ar 2 vai 3 kartēm un komplekts ar 2 kartēm un gredzenu.",
   },
   {
     name: "Tradeify",
+    img: M("43dac4_31d577e1f6064e91a2f5f4d307db72cf~mv2.jpeg"),
     kind: "Prop firma",
     desc:
       "Strauji augoša prop firma, kas dod pieeju ievērojamam tirdzniecības kapitālam: apliecini prasmes vienkāršotā Challenge procesā un pārvaldi finansētu kontu. Elastīgi noteikumi, moderna tehnoloģiskā bāze un treideriem izdevīga peļņas sadale. Promo kods: KRIPTONR1.",
   },
   {
     name: "TradingView",
+    img: M("8ce3a2_e428fd30cdc84d9b83b62354b22a7ec1~mv2.jpg"),
     kind: "Analīze",
     desc:
       "Tiešsaistes platforma finanšu tirgu analīzei un tirdzniecībai: grafiku analīze, indikatori, brīdinājumi un plašas watchlist iespējas akcijām, forex un kriptovalūtām. Reģistrējoties ar mūsu linku un iegādājoties maksas plānu, saņem $15 kredītu savam kontam.",

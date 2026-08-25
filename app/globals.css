@@ -1562,3 +1562,37 @@ code { background: rgba(255, 255, 255, .1); padding: 1px 5px; border-radius: 5px
 .lpMono { font-family: 'JetBrains Mono', monospace; }
 .lpAddr { overflow-wrap: anywhere; }
 .lpContactNote { margin: 22px 0 12px; }
+
+/* ---------- landing: artwork carried over from the old site ---------- */
+.lpHeroBg {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  opacity: .5; pointer-events: none; user-select: none;
+}
+.lpMissionIcons { display: flex; gap: 12px; margin-bottom: 16px; }
+.lpMissionIcon { width: 42px; height: 42px; object-fit: contain; }
+.lpDappImg {
+  width: 92px; height: 92px; border-radius: 16px; object-fit: cover; flex: none;
+  border: 1px solid rgba(255,255,255,.12);
+}
+.lpCourseImg, .lpPartnerImg {
+  width: calc(100% + 44px); margin: -22px -22px 4px; display: block;
+  height: 170px; object-fit: cover;
+  border-bottom: 1px solid rgba(255,255,255,.09);
+}
+.lpPartnerImg { height: 150px; }
+.lpAvatar {
+  width: 84px; height: 84px; border-radius: 50%; object-fit: cover; display: block;
+  border: 2px solid rgba(245,181,10,.45); background: rgba(255,255,255,.05);
+}
+.lpTgBtn { display: flex; align-items: center; justify-content: center; gap: 9px; }
+.lpTgIcon { width: 20px; height: 20px; object-fit: contain; }
+.lpWideImg {
+  width: calc(100% + 52px); margin: -26px -26px 20px; display: block;
+  height: 240px; object-fit: cover;
+  border-bottom: 1px solid rgba(255,255,255,.09);
+}
+@media (max-width: 720px) {
+  .lpCourseImg, .lpPartnerImg { width: calc(100% + 44px); height: 150px; }
+  .lpWideImg { width: calc(100% + 40px); margin: -20px -20px 16px; height: 180px; }
+  .lpDappImg { width: 64px; height: 64px; }
+}
