@@ -35,8 +35,10 @@ export const SOCIAL = {
   telegramChat: "https://t.me/+scpLA_vgetQ2YmJk",
   telegramPrivate: "https://t.me/tribute/app?startapp=siKw-5jq16tckash",
   youtube: "https://www.youtube.com/@kriptonr1",
-  whitelistForm:
-    "https://docs.google.com/forms/d/e/1FAIpQLScZS8Qa0fer328np3MWJFq78lvgedyNvFIBU90fy2JvHtTNYA/viewform",
+  tiktok: "https://www.tiktok.com/@kriptonr1",
+  // Private-group access: card via Tribute, crypto via the Telegram bot.
+  payCard: "https://t.me/tribute/app?startapp=siKw-5jq16tckash",
+  payCrypto: "https://t.me/Kripto_Nr1_bot",
 };
 
 export const SOCIAL_LINKS = [
@@ -45,15 +47,6 @@ export const SOCIAL_LINKS = [
   { label: "TG PRIVĀTĀ GRUPA", href: SOCIAL.telegramPrivate, emoji: "🔒" },
   { label: "YOUTUBE KANĀLS", href: SOCIAL.youtube, emoji: "▶️" },
 ];
-
-/** Payment details, exactly as the old site listed them. */
-export const PAYMENT = {
-  bank: "LV17HABA0551017061332 SIA Digital Tech",
-  bankNote: "Ja nepieciešams, izrakstām rēķinu.",
-  crypto: "0x104D6bee35a0CF9940EE476F48E36fF35997eD76",
-  cryptoNote: "USDT vai USDC — BEP20 vai Polygon tīklā.",
-  outro: "Piedāvājums ir ierobežots. Droši uzraksti mums Telegram.",
-};
 
 /** The dApp itself — every tab of the terminal. */
 export const TERMINAL = [
@@ -121,7 +114,7 @@ export const PRODUCTS = [
     title: "Kripto Nr.1 Privātā grupa",
     desc: "Šī nav tikai grupa — šis ir starts tavai jaunajai dzīvei kripto pasaulē.",
     img: M("8ce3a2_b037940efc0346139aa9c38defc23c30~mv2.png"),
-    more: "#whitelist",
+    more: "#privata-grupa",
     cta: "IEGĀDĀTIES",
   },
   {
@@ -408,20 +401,27 @@ export const FAQ = [
   },
 ];
 
-export const WHITELIST = {
-  title: "Kripto Nr.1 whitelist",
-  body: [
-    "Mūsu privātā grupa kopš 01.01.2026 ir slēgta. Šobrīd pirmo reizi šajā gadā atveram Whitelist nākamajai uzņemšanai!",
-    "Tiešraides laikā publiski parādījām desmitiem veiksmīgu darījumu un vairākus iespaidīgus iksus Robinhood Chain ekosistēmā.",
+export const PRIVATE = {
+  title: "👑 KRIPTO PRIVATE Nr.1 👑",
+  intro:
+    "Esi soli priekšā pārējiem un pievienojies mūsu privātajai grupai, kurā satiksi līdzīgi domājošus cilvēkus, kas dalīsies ar informāciju un pieredzi! 👋",
+  offerTitle: "KO MĒS PIEDĀVĀJAM?",
+  offer: [
+    "Trading signāli, tirgus analīze un portfeļa izveide",
+    "Airdropi un Retrodropi",
+    "Augsta riska memecoini ar milzīgu potenciālu",
+    "DEFI instrumenti, likviditātes nodrošināšana līdz PAT 1000% APR",
+    "NFT WL saņemšana Top NFT kolekcijās",
+    "Piedalīšanās privātajos tokenu izpārdošanas raundos Top Crypto projektos",
+    "Traidings uz CEX un DEX",
+    "Ilgtermiņa portfelis",
+    "Tokenu analīzes",
+    "Piedalīšanās uz IDO — Initial DEX Offering",
+    "Iknedēļas sazvani par jebkuru tēmu",
   ],
-  notes: [
-    "Whitelist negarantē, ka tiksiet uzņemti.",
-    "Nākamā uzņemšana plānota tikai septembrī–oktobrī.",
-    "Tiks uzņemts tikai ierobežots dalībnieku skaits.",
-  ],
-  outro:
-    "Ja vēlaties rezervēt sev iespēju piedalīties nākamajā uzņemšanā, aizpildiet pieteikumu jau tagad.",
-  privateGroup:
+  joinTitle:
+    "Ja Tu vēl neesi pievienojies mūsu privātajai grupai, to var izdarīt 2 veidos:",
+  blurb:
     "Visvērtīgākā informācija ir pieejama mūsu Telegram „KriptoNr1 Private” grupā — ekskluzīvā kopienā ar ierobežotu piekļuvi, kur dalāmies ar padziļinātiem ieskatiem un iespējām.",
 };
 

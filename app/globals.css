@@ -1557,3 +1557,18 @@ code { background: rgba(255, 255, 255, .1); padding: 1px 5px; border-radius: 5px
   .kBar { justify-content: center; }
   .kBarLinks { justify-content: center; gap: 16px; }
 }
+
+/* ---------- private group ---------- */
+.kPrivate { max-width: 900px; margin: 28px auto 0; }
+.kOffer { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; text-align: left; }
+.kOffer li {
+  display: flex; align-items: flex-start; gap: 13px;
+  font-size: 15px; line-height: 1.5; color: var(--kText);
+}
+.kOfferNo {
+  flex: none; width: 27px; height: 27px; border-radius: 8px; display: grid; place-items: center;
+  font-size: 13px; font-weight: 800; color: #fff;
+  background: linear-gradient(180deg, var(--kRedHi), var(--kRed));
+}
+.kJoinSm { margin-top: 34px; font-size: clamp(15px, 1.7vw, 19px); }
+.kPayHint { margin: 18px 0 0; font-size: 13.5px; color: #8b97c7; }

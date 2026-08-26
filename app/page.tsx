@@ -14,13 +14,12 @@ import {
   MISSION,
   NEWS,
   PARTNERS,
-  PAYMENT,
+  PRIVATE,
   PRODUCTS,
   PRODUCTS_HEAD,
   SOCIAL,
   TEAM,
   TERMINAL,
-  WHITELIST,
 } from "@/lib/landing";
 
 const NAV = [
@@ -28,19 +27,30 @@ const NAV = [
   { href: "#labs", label: "Kripto Labs" },
   { href: "#produkti", label: "Produkti" },
   { href: "#konsultacijas", label: "Konsultācijas" },
+  { href: "#privata-grupa", label: "Privātā grupa" },
   { href: "#partneri", label: "Sadarbības partneri" },
   { href: "#komanda", label: "Komanda" },
   { href: "#kontakti", label: "Kontakti" },
 ];
 
-// The old site also showed Facebook and TikTok; those URLs aren't known yet.
 const SOCIALS = [
   { label: "Telegram", href: SOCIAL.telegramChannel, cls: "kTg" },
   { label: "YouTube", href: SOCIAL.youtube, cls: "kYt" },
+  { label: "TikTok", href: SOCIAL.tiktok, cls: "kTt" },
 ];
 
 /** Brand glyphs, drawn inline so the page stays self-contained. */
 function Glyph({ kind }: { kind: string }) {
+  if (kind === "kTt") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden>
+        <path
+          fill="currentColor"
+          d="M16.6 5.8a4.3 4.3 0 0 1-1.1-2.8h-3v12.1a2.5 2.5 0 1 1-1.8-2.4V9.6a5.5 5.5 0 1 0 4.8 5.5V9a7.3 7.3 0 0 0 4.3 1.4V7.4a4.3 4.3 0 0 1-3.2-1.6Z"
+        />
+      </svg>
+    );
+  }
   if (kind === "kYt") {
     return (
       <svg viewBox="0 0 24 24" aria-hidden>
@@ -103,8 +113,8 @@ export default function Home() {
           ))}
         </div>
         <div className="kBarRight">
-          <a href="#whitelist" className="kRedBtn kBarWhitelist">
-            Whitelist
+          <a href="#privata-grupa" className="kRedBtn kBarWhitelist">
+            Privātā grupa
           </a>
           <SocialRow />
         </div>
@@ -174,7 +184,7 @@ export default function Home() {
       <section id="misija" className="kSection kCoins">
         <h2 className="kH2">{MISSION.title}</h2>
         <div className="kMission">
-          {[MISSION.lead, WHITELIST.privateGroup, MISSION.body].map((t, i) => (
+          {[MISSION.lead, PRIVATE.blurb, MISSION.body].map((t, i) => (
             <div key={t} className="kMissionCol">
               <div className="kMissionIcon">
                 <img src={MISSION.icons[i]} alt="" />
@@ -242,19 +252,6 @@ export default function Home() {
             </div>
           </article>
         ))}
-        <div className="kCard kPay">
-          <h3 className="kCardTitle">APMAKSA</h3>
-          <p className="kPayRow">
-            <span>Ar pārskaitījumu:</span> <b>{PAYMENT.bank}</b>
-          </p>
-          <p className="kPayNote">{PAYMENT.bankNote}</p>
-          <p className="kPayRow">
-            <span>Adrese apmaksai ar kripto:</span>{" "}
-            <b className="kAddr">{PAYMENT.crypto}</b>
-          </p>
-          <p className="kPayNote">{PAYMENT.cryptoNote}</p>
-          <p className="kPayNote">{PAYMENT.outro}</p>
-        </div>
       </section>
 
       {/* ---------- Produkti ---------- */}
@@ -372,31 +369,43 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ---------- Whitelist / privātā grupa ---------- */}
-      <section id="whitelist" className="kSection kCoins">
-        <h2 className="kH2">{WHITELIST.title}</h2>
-        {WHITELIST.body.map((b) => (
-          <p key={b} className="kLead">
-            {b}
-          </p>
-        ))}
-        <div className="kCard kCenterCard">
-          <p className="kNotesTitle">Svarīgi:</p>
-          <ul className="kList kListLeft">
-            {WHITELIST.notes.map((n) => (
-              <li key={n}>{n}</li>
+      {/* ---------- privātā grupa ---------- */}
+      <section id="privata-grupa" className="kSection kCoins">
+        <h2 className="kH2">{PRIVATE.title}</h2>
+        <p className="kLead">{PRIVATE.intro}</p>
+        <div className="kCard kPrivate">
+          <h3 className="kCardTitle">{PRIVATE.offerTitle}</h3>
+          <ol className="kOffer">
+            {PRIVATE.offer.map((o, i) => (
+              <li key={o}>
+                <span className="kOfferNo">{i + 1}</span>
+                {o}
+              </li>
             ))}
-          </ul>
-          <p className="kCardDesc">{WHITELIST.outro}</p>
+          </ol>
+        </div>
+        <p className="kJoin kJoinSm">{PRIVATE.joinTitle}</p>
+        <div className="kCenter">
           <a
-            href={SOCIAL.whitelistForm}
+            href={SOCIAL.payCard}
             target="_blank"
             rel="noreferrer"
-            className="kRedBtn"
+            className="kRedBtn kRedBtnLg"
           >
-            PIETEIKTIES
+            💳 MAKSĀT AR KARTI
+          </a>
+          <a
+            href={SOCIAL.payCrypto}
+            target="_blank"
+            rel="noreferrer"
+            className="kRedBtn kRedBtnLg"
+          >
+            ₿ MAKSĀT AR KRIPTO
           </a>
         </div>
+        <p className="kPayHint">
+          Ar karti — caur Tribute. Ar kripto — mūsu Telegram botā @Kripto_Nr1_bot.
+        </p>
       </section>
 
       {/* ---------- knowledge base ---------- */}
