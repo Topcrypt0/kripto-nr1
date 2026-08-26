@@ -166,9 +166,9 @@ export const LABS = [
   { title: "KRIPTO IESĀCĒJIEM", id: "vLicX5G5YNU" },
   { title: "KRIPTO PAMATI IESĀCĒJIEM II", id: "yvaWxu8CQ60" },
   { title: "DEFI WORKSHOP", id: "B3NnoslNE9Q" },
-  { title: "KRIPTO NR.1 PRIVATE EKSKURSIJA", id: "_uSX1mgUkSk" },
-  { title: "SARUNA AR VIESTURU TAMUŽU", id: "93Bt1Tv3_qA" },
-  { title: "KĀ UZLIKT KRIPTO BOTUS", id: "GiDvyGZW6GE" },
+  { title: "KRIPTO NR.1 PRIVATE EKSKURSIJA", id: "GiDvyGZW6GE" },
+  { title: "NODOKĻI KRIPTOVALŪTĀ", id: "93Bt1Tv3_qA" },
+  { title: "KĀ UZLIKT KRIPTO BOTUS", id: "_uSX1mgUkSk" },
 ];
 
 export const COURSES_HEAD = {
