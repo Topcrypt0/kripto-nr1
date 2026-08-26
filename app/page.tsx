@@ -2,7 +2,7 @@ import Link from "next/link";
 import { BuyCrypto } from "@/components/BuyCrypto";
 import {
   ART,
-  CONSULT_TOPICS,
+  CONSULTANTS,
   COURSES,
   COURSES_HEAD,
   DISCLAIMER,
@@ -10,7 +10,6 @@ import {
   HERO,
   LABS,
   LABS_HEAD,
-  LEGAL_CONSULT,
   MISSION,
   NEWS,
   PARTNERS,
@@ -205,20 +204,19 @@ export default function Home() {
         <h2 className="kH2">{LABS_HEAD.title}</h2>
         <p className="kLead">{LABS_HEAD.desc}</p>
         <div className="kLabs">
-          {LABS.map((title) => (
-            <a
-              key={title}
-              href={SOCIAL.youtube}
-              target="_blank"
-              rel="noreferrer"
-              className="kCard kLabCard"
-            >
-              <h3 className="kCardTitle">{title}</h3>
-              <span className="kPlay" aria-hidden>
-                <Glyph kind="kYt" />
-              </span>
-              <span className="kMore">Skatīties YouTube →</span>
-            </a>
+          {LABS.map((l) => (
+            <article key={l.id} className="kCard kLabCard">
+              <h3 className="kCardTitle">{l.title}</h3>
+              <div className="kVideo">
+                <iframe
+                  src={`https://www.youtube-nocookie.com/embed/${l.id}`}
+                  title={l.title}
+                  loading="lazy"
+                  allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              </div>
+            </article>
           ))}
         </div>
       </section>
@@ -294,32 +292,35 @@ export default function Home() {
           Lai pieteiktos konsultācijai, sazinies ar izvēlēto Kripto Nr. 1
           partneri privāti Telegram.
         </p>
-        <div className="kGrid kGrid2">
-          <article className="kCard">
-            <h3 className="kCardTitle">TĒMAS KONSULTĀCIJĀM</h3>
-            <ul className="kList">
-              {CONSULT_TOPICS.map((t) => (
-                <li key={t}>{t}</li>
-              ))}
-            </ul>
-            <p className="kRate">Konsultācijas maksa 70 EUR/h</p>
+        {CONSULTANTS.map((c) => (
+          <article key={c.name} className="kCard kConsult">
+            <figure className="kConsultPhoto">
+              <img src={c.photo} alt={c.name} />
+              <figcaption>{c.name}</figcaption>
+            </figure>
+            <div className="kConsultBody">
+              <h3 className="kCardTitle">TĒMAS KONSULTĀCIJĀM</h3>
+              {c.role ? <p className="kRole">{c.role}</p> : null}
+              <ul className="kList">
+                {c.topics.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
+              <p className="kRate">{c.rate}</p>
+              <div className="kConsultCta">
+                <span>Pieteikties konsultācijai:</span>
+                <a
+                  href={c.telegram}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="kRedBtn"
+                >
+                  Pieteikties <Glyph kind="kTg" />
+                </a>
+              </div>
+            </div>
           </article>
-          <article className="kCard kCenterCard">
-            <img
-              src={LEGAL_CONSULT.photo}
-              alt={LEGAL_CONSULT.name}
-              className="kAvatar"
-            />
-            <h3 className="kCardTitleW">{LEGAL_CONSULT.name}</h3>
-            <p className="kRole">{LEGAL_CONSULT.role}</p>
-            <ul className="kList kListLeft">
-              {LEGAL_CONSULT.topics.map((t) => (
-                <li key={t}>{t}</li>
-              ))}
-            </ul>
-            <p className="kRate">{LEGAL_CONSULT.rate}</p>
-          </article>
-        </div>
+        ))}
       </section>
 
       {/* ---------- Sadarbības partneri ---------- */}

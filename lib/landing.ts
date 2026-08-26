@@ -163,16 +163,12 @@ export const LABS_HEAD = {
 };
 
 export const LABS = [
-  "KRIPTO IESĀCĒJIEM",
-  "KRIPTO PAMATI IESĀCĒJIEM II",
-  "DEFI WORKSHOP",
-  "KRIPTO NR.1 PRIVATE EKSKURSIJA",
-  "SARUNA AR VIESTURU TAMUŽU",
-  "KĀ UZLIKT KRIPTO BOTUS",
-  "NODOKĻI KRIPTOVALŪTĀ",
-  "KUR GLABĀT KRIPTOVALŪTU?",
-  "KAS IR SEED PHRASE?",
-  "TEKOŠĀS DIENAS JAUNUMI",
+  { title: "KRIPTO IESĀCĒJIEM", id: "vLicX5G5YNU" },
+  { title: "KRIPTO PAMATI IESĀCĒJIEM II", id: "yvaWxu8CQ60" },
+  { title: "DEFI WORKSHOP", id: "B3NnoslNE9Q" },
+  { title: "KRIPTO NR.1 PRIVATE EKSKURSIJA", id: "_uSX1mgUkSk" },
+  { title: "SARUNA AR VIESTURU TAMUŽU", id: "93Bt1Tv3_qA" },
+  { title: "KĀ UZLIKT KRIPTO BOTUS", id: "GiDvyGZW6GE" },
 ];
 
 export const COURSES_HEAD = {
@@ -300,37 +296,80 @@ export const TEAM = [
   },
 ];
 
-export const CONSULT_TOPICS = [
-  "Kripto pamati no nulles — drošība, maka izveide, naudas iemaksa, pirkšana, pārdošana un pārsūtīšana",
-  "Individuāla portfeļa izveide un investīciju ieteikumi atbilstoši kapitālam un riskam",
-  "Trading pamati — lasīt grafikus un noteikt cenas virzienu",
-  "Decentralizētās (DEX) un centralizētās (CEX) biržas, to lietošana",
-  "Naudas pārskaitīšana, saņemšana un nodokļi kripto nozarē",
-  "DeFi platformas un DeFi pamati",
-  "Padziļināta tirgus analīze un tirgus psiholoģija",
-  "Trading botu izmantošana un futures treidings",
-  "NFT veidošana, pirkšana un pārdošana",
-  "Jaunu un esošu projektu padziļināta analīze — vai tā ir laba investīcija",
-  "Biznesa uzsākšana, biznesa plāna sastādīšana, komandas veidošana",
+export const CONSULTANTS = [
+  {
+    name: "Vilnis Priedītis",
+    photo: M("43dac4_193bb93a1adc492d8cc8ff950733b92f~mv2.png"),
+    telegram: "https://t.me/VilnisPrieditis",
+    rate: "Konsultācijas maksa 70 EUR/h",
+    topics: [
+      "Kripto pamati no nulles, kripto maku izveidošana.",
+      "Individuāla kripto portfeļa izveide.",
+      "Trading pamati.",
+      "Decentralizētas (DEX) un centralizētas (CEX) biržas, to lietošana.",
+      "Naudas pārskaitīšana, saņemšana.",
+      "Nodokļi kripto nozarē.",
+      "Tirgus psiholoģija.",
+      "Futures trading.",
+      "Biznesa uzsākšana, biznesa plāna sastādīšana, komandas veidošana.",
+    ],
+  },
+  {
+    name: "Andrejs Kozlovs",
+    photo: M("43dac4_bc1b7ec2a35d4ad096a483dfd210c69b~mv2.jpg"),
+    telegram: "https://t.me/mracryptoo",
+    rate: "Konsultācijas maksa 70 EUR/h",
+    topics: [
+      "Kripto pamati (ar ko un kā sākt).",
+      "Individuāla portfeļa izveide.",
+      "Trading pamati.",
+      "Decentralizētas (DEX), centralizētas (CEX) biržas, to lietošana.",
+      "Naudas pārskaitīšana, saņemšana.",
+      "DeFi pamati.",
+      "Tirgus psiholoģija.",
+      "Trading botu izmantošana.",
+      "Futures treidings.",
+      "Drošība kripto vidē.",
+      "Excel konsultācijas.",
+    ],
+  },
+  {
+    name: "Rihards Pranis",
+    photo: M("8ce3a2_ea7ad6b90d5e4ddcb64e346de107ef7f~mv2.png"),
+    telegram: "https://t.me/RihardsPranis",
+    rate: "Konsultācijas maksa 70 EUR/h",
+    topics: [
+      "Kripto pamati (drošība, maka izveide, naudas iemaksa, pirkšana, pārdošana un pārsūtīšana).",
+      "Individuāla portfeļa izveide un investīciju ieteikumi, atbilstoši kapitālam un riskam.",
+      "Trading pamati, lai iemācītos lasīt grafikus un noteikt cenas virzienu.",
+      "Decentralizētas un centralizētas biržas, to lietošana.",
+      "Naudas pārskaitījumi / nodokļi.",
+      "DeFi platformas.",
+      "Padziļināta tirgus analīze un psiholoģija.",
+      "NFT veidošana, pirkšana/pārdošana.",
+      "Mindset.",
+      "Jaunu un esošu projektu padziļināta analīze, lai noteiktu, vai tā ir laba investīcija.",
+    ],
+  },
+  {
+    name: "Lauris Klagišs",
+    role: "Zvērināts advokāts",
+    photo: M("8ce3a2_4785b80395f74b70b43ee6441249b278~mv2.jpeg"),
+    telegram: "https://t.me/kriptonr1",
+    rate: "Konsultācijas maksa 200 EUR + PVN/h",
+    topics: [
+      "Nodokļu aprēķināšana un nomaksa.",
+      "VID darbības metodes un principi.",
+      "Legālas iespējas samazināt maksājamo nodokļu apmēru.",
+      "Nodokļu jurisdikcijas un nodokļu režīmu izvēle.",
+      "Profesionāla pārstāvība Valsts ieņēmumu dienestā.",
+      "VID lēmumu pārsūdzēšana.",
+      "Pārstāvība administratīvajās tiesās par nodokļu uzrēķiniem.",
+      "Klienta sagatavošana Valsts ieņēmumu dienesta pārbaudēm.",
+      "Konsultācijas nodokļu maksājumu atlikšanā vai sadalīšanā.",
+    ],
+  },
 ];
-
-export const LEGAL_CONSULT = {
-  name: "Lauris Klagišs",
-  role: "Zvērināts advokāts",
-  photo: M("8ce3a2_4785b80395f74b70b43ee6441249b278~mv2.jpeg"),
-  rate: "Konsultācijas maksa 200 EUR + PVN/h",
-  topics: [
-    "Nodokļu aprēķināšana un nomaksa",
-    "VID darbības metodes un principi",
-    "Legālas iespējas samazināt maksājamo nodokļu apmēru",
-    "Nodokļu jurisdikcijas un nodokļu režīmu izvēle",
-    "Profesionāla pārstāvība Valsts ieņēmumu dienestā",
-    "VID lēmumu pārsūdzēšana",
-    "Pārstāvība administratīvajās tiesās par nodokļu uzrēķiniem",
-    "Klienta sagatavošana Valsts ieņēmumu dienesta pārbaudēm",
-    "Konsultācijas nodokļu maksājumu atlikšanā vai sadalīšanā",
-  ],
-};
 
 export const PARTNERS = [
   {
