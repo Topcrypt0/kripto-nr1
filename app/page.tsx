@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BuyCrypto } from "@/components/BuyCrypto";
+import { IntroVideo } from "@/components/IntroVideo";
 import {
   ART,
   CONSULTANTS,
@@ -151,6 +152,22 @@ export default function Home() {
             </a>
           </div>
           <img src={ART.phone} alt="" className="kHeroPhone" />
+        </div>
+      </section>
+
+      {/* ---------- weekly stream intro ---------- */}
+      <section id="tiesraide" className="kSection">
+        <p className="kEyebrow">IKNEDĒĻAS TIEŠRAIDE</p>
+        <h2 className="kH2">Kripto Nr.1 dodas kosmosā 🚀</h2>
+        <p className="kLead">
+          Katru nedēļu Vilnis, Rihards, Andrejs un Arturs iet tiešraidē YouTube —
+          tirgus apskats, jaunākās iespējas un atbildes uz jūsu jautājumiem.
+        </p>
+        <IntroVideo />
+        <div className="kCenter">
+          <a href={SOCIAL.youtube} target="_blank" rel="noreferrer" className="kRedBtn kRedBtnLg">
+            SKATĪTIES YOUTUBE <Glyph kind="kYt" />
+          </a>
         </div>
       </section>
 
