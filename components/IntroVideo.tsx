@@ -33,8 +33,13 @@ export function IntroVideo() {
         preload="metadata"
         aria-label="KRIPTO NR.1 iknedēļas tiešraides intro"
       />
-      <button type="button" className="kIntroSound" onClick={toggleSound}>
-        {muted ? "🔊 Ieslēgt skaņu" : "🔇 Izslēgt skaņu"}
+      <button
+        type="button"
+        className="kIntroSound"
+        onClick={toggleSound}
+        aria-label={muted ? "Ieslēgt skaņu" : "Izslēgt skaņu"}
+      >
+        {muted ? "🔊" : "🔇"}
       </button>
     </div>
   );
