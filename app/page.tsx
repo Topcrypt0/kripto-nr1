@@ -70,6 +70,14 @@ function Glyph({ kind }: { kind: string }) {
   );
 }
 
+function PromoCode({ code }: { code: string }) {
+  return (
+    <p className="kPromo">
+      Promo kods: <b>{code}</b>
+    </p>
+  );
+}
+
 function SocialRow({ big = false }: { big?: boolean }) {
   return (
     <div className={big ? "kSocials kSocialsBig" : "kSocials"}>
@@ -335,11 +343,44 @@ export default function Home() {
           {PARTNERS.map((p) => (
             <article key={p.name} className="kCard kProduct">
               <h3 className="kCardTitleW">{p.name}</h3>
-              <img src={p.img} alt="" className="kProductImg" />
+              <span className="kTag">{p.kind}</span>
+              {p.img ? (
+                <img src={p.img} alt="" className="kProductImg" />
+              ) : (
+                <div className="kPartnerMark" aria-hidden>
+                  <span>{p.mark}</span>
+                  {p.name}
+                </div>
+              )}
               <p className="kCardDesc">{p.desc}</p>
-              <a href="#kontakti" className="kMoreLink">
-                Vairāk informācija šeit!
-              </a>
+              {p.subs?.map((o) => (
+                <div key={o.name} className="kSubOffer">
+                  <p className="kSubName">{o.name}</p>
+                  <p className="kCardDesc">{o.desc}</p>
+                  {o.code ? <PromoCode code={o.code} /> : null}
+                  {o.href ? (
+                    <a
+                      href={o.href}
+                      target="_blank"
+                      rel="sponsored noopener noreferrer"
+                      className="kRedBtn"
+                    >
+                      {o.cta}
+                    </a>
+                  ) : null}
+                </div>
+              ))}
+              {p.code ? <PromoCode code={p.code} /> : null}
+              {p.href ? (
+                <a
+                  href={p.href}
+                  target="_blank"
+                  rel="sponsored noopener noreferrer"
+                  className="kRedBtn"
+                >
+                  {p.cta}
+                </a>
+              ) : null}
             </article>
           ))}
         </div>
