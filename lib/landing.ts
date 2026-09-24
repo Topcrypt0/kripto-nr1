@@ -371,13 +371,19 @@ export const CONSULTANTS = [
   },
 ];
 
-export const PARTNERS = [
+/**
+ * Partners. Every link carries the Kripto Nr.1 referral / promo code, so the
+ * CTA on each card is the sign-up that credits the community.
+ */
+export const PARTNERS: Partner[] = [
   {
     name: "Bitunix birža",
     img: M("8ce3a2_662aacd74b244587823b052ffc14e0d2~mv2.jpg"),
     kind: "CEX",
     desc:
       "Viena no visstraujāk augošajām CEX biržām, dibināta 2021. gada novembrī. Svarīgi ir tas, ka Bitunix ir ieguvusi ASV un Kanādas MSB licenci, un uzņēmums pašlaik strādā pie citu valstu licenču iegūšanas.",
+    href: "https://www.bitunix.com/register?vipCode=KRIPTONR1",
+    cta: "REĢISTRĒTIES",
   },
   {
     name: "Pionex birža",
@@ -385,6 +391,8 @@ export const PARTNERS = [
     kind: "CEX · boti",
     desc:
       "Birža ar automatizētiem tirdzniecības rīkiem: vairāki bezmaksas tirdzniecības roboti (arbitrāža, rebalancing), daudzveidīgas tirdzniecības iespējas un zemas komisijas. Izveidota tā, lai atvieglotu tirdzniecību arī nepieredzējušiem tirgotājiem.",
+    href: "https://www.pionex.com/en/activities/common/1071831520/depoch?referral=KRIPTO1",
+    cta: "REĢISTRĒTIES",
   },
   {
     name: "Tangem Cold Wallet",
@@ -392,13 +400,30 @@ export const PARTNERS = [
     kind: "Aparātmaks",
     desc:
       "Kripto maks, kas izskatās kā plastikāta kredītkarte. Privātās atslēgas tiek glabātas fiziski uz kartes, nevis ierīcē — EAL6+ sertifikāts. Pieejami komplekti ar 2 vai 3 kartēm un komplekts ar 2 kartēm un gredzenu.",
+    href: "https://redirect.sale/tangem/?promocode=KRIPTONR1",
+    cta: "IEGĀDĀTIES",
+    code: "KRIPTONR1",
   },
   {
-    name: "Tradeify",
+    name: "Prop firmas",
     img: M("43dac4_31d577e1f6064e91a2f5f4d307db72cf~mv2.jpeg"),
-    kind: "Prop firma",
+    kind: "Prop trading",
     desc:
-      "Strauji augoša prop firma, kas dod pieeju ievērojamam tirdzniecības kapitālam: apliecini prasmes vienkāršotā Challenge procesā un pārvaldi finansētu kontu. Elastīgi noteikumi, moderna tehnoloģiskā bāze un treideriem izdevīga peļņas sadale. Promo kods: KRIPTONR1.",
+      "Treido ar firmas kapitālu, nevis saviem uzkrājumiem: apliecini prasmes izaicinājumā (Challenge) un pārvaldi finansētu kontu ar izdevīgu peļņas sadali.",
+    subs: [
+      {
+        name: "Propr",
+        desc: "Prop firma ar finansētiem kontiem treideriem, kas nokārto izaicinājumu.",
+        href: "https://app.propr.xyz/r/KRIPTO",
+        cta: "REĢISTRĒTIES",
+      },
+      {
+        name: "Tradeify",
+        desc:
+          "Strauji augoša prop firma ar elastīgiem noteikumiem un modernu tehnoloģisko bāzi.",
+        code: "KRIPTONR1",
+      },
+    ],
   },
   {
     name: "TradingView",
@@ -406,8 +431,50 @@ export const PARTNERS = [
     kind: "Analīze",
     desc:
       "Tiešsaistes platforma finanšu tirgu analīzei un tirdzniecībai: grafiku analīze, indikatori, brīdinājumi un plašas watchlist iespējas akcijām, forex un kriptovalūtām. Reģistrējoties ar mūsu linku un iegādājoties maksas plānu, saņem $15 kredītu savam kontam.",
+    href: "https://www.tradingview.com/?aff_id=155086&aff_sub=KRIPTONR1&source=public",
+    cta: "REĢISTRĒTIES",
+  },
+  {
+    name: "Pacifica",
+    mark: "📈",
+    kind: "Perp DEX",
+    desc:
+      "Decentralizēta mūžīgo fjūčeru birža (Perp DEX) — treido long un short ar sviru tieši no sava kripto maka.",
+    href: "https://app.pacifica.fi?referral=KRIPTO",
+    cta: "SĀKT TREIDOT",
+  },
+  {
+    name: "Polymarket",
+    mark: "🔮",
+    kind: "Prognožu tirgus",
+    desc:
+      "Viens no lielākajiem prognožu tirgiem pasaulē — treido uz notikumu iznākumiem: politika, kripto, sports un ekonomika.",
+    href: "https://polymarket.com/?r=kripto",
+    cta: "PROGNOZĒT",
   },
 ];
+
+type PartnerOffer = {
+  name: string;
+  desc: string;
+  href?: string;
+  cta?: string;
+  code?: string;
+};
+
+export type Partner = {
+  name: string;
+  /** Artwork from the old site; partners added since then show `mark` instead. */
+  img?: string;
+  mark?: string;
+  kind: string;
+  desc: string;
+  href?: string;
+  cta?: string;
+  code?: string;
+  /** A card grouping several firms, each with its own sign-up. */
+  subs?: PartnerOffer[];
+};
 
 export const FAQ = [
   {

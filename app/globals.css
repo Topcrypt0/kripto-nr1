@@ -1611,3 +1611,33 @@ code { background: rgba(255, 255, 255, .1); padding: 1px 5px; border-radius: 5px
   .kConsult { grid-template-columns: 1fr; gap: 18px; }
   .kConsultCta { justify-content: center; }
 }
+
+/* ---------- partner cards ---------- */
+.kTag {
+  margin: -2px 0 6px; padding: 4px 12px; border-radius: 999px;
+  font-size: 11.5px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase;
+  color: var(--kTitle); background: rgba(167,184,232,.1); border: 1px solid rgba(167,184,232,.22);
+}
+/* Stand-in artwork for partners added after the old site. */
+.kPartnerMark {
+  width: 100%; max-width: 330px; aspect-ratio: 16 / 10; margin: 10px 0; border-radius: 10px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  font-size: 26px; font-weight: 800; color: #fff; letter-spacing: .3px;
+  background:
+    radial-gradient(120% 90% at 30% 10%, rgba(224,21,36,.35), transparent 60%),
+    linear-gradient(160deg, #222a42, #10141f);
+  border: 1px solid rgba(255,255,255,.08);
+}
+.kPartnerMark span { font-size: 46px; line-height: 1; }
+.kSubOffer {
+  width: 100%; margin: 4px 0 14px; padding: 16px; border-radius: 12px;
+  background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.06);
+  display: flex; flex-direction: column; align-items: center;
+}
+.kSubOffer .kCardDesc { margin-bottom: 10px; }
+.kSubName { margin: 0 0 6px; font-size: 17px; font-weight: 800; color: #fff; }
+.kPromo { margin: 0 0 14px; font-size: 14px; color: var(--kText); }
+.kPromo b {
+  font-family: 'JetBrains Mono', monospace; color: #fff; padding: 2px 8px; border-radius: 6px;
+  background: rgba(255,255,255,.08); letter-spacing: .5px;
+}
